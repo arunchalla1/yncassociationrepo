@@ -37,17 +37,15 @@
           <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Sign in</button>
         </form>
 
+        <p class="text-center" style="margin-top:14px; font-size:0.88rem;">
+          <a href="#" id="forgotPasswordLink">Forgot your password?</a>
+        </p>
+        <div id="forgotAlert" class="alert alert-error" hidden style="margin-top:8px;"></div>
+        <div id="forgotSuccess" class="alert alert-success" hidden style="margin-top:8px;"></div>
+
         <p class="text-center text-muted" style="margin-top:16px; font-size:0.88rem;">
           New staff member? <a href="signup.html">Create an account</a>
         </p>
-
-        <hr class="divider">
-        <details>
-          <summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted);">Demo credentials (for testing)</summary>
-          <p class="text-muted" style="font-size:0.82rem; margin-top:8px;">
-            Association admin: <code>admin@yncassociation.demo</code> / <code>YncDemo@2026</code>
-          </p>
-        </details>
       </div>
     </div>
   </section>
@@ -80,11 +78,44 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
   }
 
   const { data: profile } = await supabaseClient.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
-  if (profile && (profile.role === "association" || profile.role === "admin")) {
+  if (profile && profile.role === "admin") {
     window.location.href = "admin/dashboard.html";
   } else {
     window.location.href = "index.html";
   }
+});
+
+// Self-service password reset — sends a reset link by email, so an admin's password
+// no longer needs to be shared or looked up by anyone else. Requires a real, reachable
+// email address on the account (the sample "…@yncassociation.demo" account can't
+// receive mail, so this won't work for it — see README).
+document.getElementById("forgotPasswordLink").addEventListener("click", async (e) => {
+  e.preventDefault();
+  const forgotAlert = document.getElementById("forgotAlert");
+  const forgotSuccess = document.getElementById("forgotSuccess");
+  forgotAlert.hidden = true; forgotSuccess.hidden = true;
+
+  const email = document.getElementById("email").value.trim();
+  if (!email) {
+    forgotAlert.textContent = "Enter your email address above first, then click \"Forgot your password?\".";
+    forgotAlert.hidden = false;
+    return;
+  }
+
+  const link = document.getElementById("forgotPasswordLink");
+  link.textContent = "Sending reset link…";
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname.replace(/login\.html$/, "") + "reset-password.html",
+  });
+  link.textContent = "Forgot your password?";
+
+  if (error) {
+    forgotAlert.textContent = error.message || "Could not send reset email.";
+    forgotAlert.hidden = false;
+    return;
+  }
+  forgotSuccess.textContent = "If an account exists for that email, a password reset link was just sent to it. Check your inbox (and spam folder).";
+  forgotSuccess.hidden = false;
 });
 </script>
 </body>

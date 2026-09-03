@@ -23,12 +23,8 @@ async function initCommitteePage(opts) {
   sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
   sel.addEventListener("change", () => loadForYear(committee.id, Number(sel.value)));
 
-  // nomination form defaults to the most recent year
-  document.getElementById("nomYear").value = years[0];
-
   loadForYear(committee.id, Number(sel.value));
   loadGallery(committee.id);
-  wireNominationForm(committee.id);
 }
 
 function initials(name) {
@@ -78,16 +74,25 @@ async function loadGallery(committeeId) {
   `).join("");
 }
 
-function wireNominationForm(committeeId) {
+function wireNominationForm(committeeIdSource) {
   const form = document.getElementById("nominationForm");
+  if (!form) return;
   const alertBox = document.getElementById("nomAlert");
   const successBox = document.getElementById("nomSuccess");
   const typeRadios = form.querySelectorAll('input[name="nomType"]');
   const otherFields = document.getElementById("nominatedByFields");
 
+  const emailInput = document.getElementById("nomineeEmail");
+  const emailHint = document.getElementById("nomineeEmailHint");
+
   function syncType() {
     const val = form.querySelector('input[name="nomType"]:checked').value;
     otherFields.style.display = val === "other" ? "block" : "none";
+    const selfSelected = val === "self";
+    emailInput.required = selfSelected;
+    if (emailHint) emailHint.textContent = selfSelected
+      ? "Required — we'll email you here once the committee approves your nomination."
+      : "Optional — used to notify the nominee if approved.";
   }
   typeRadios.forEach(r => r.addEventListener("change", syncType));
   syncType();
@@ -98,10 +103,18 @@ function wireNominationForm(committeeId) {
     const btn = document.getElementById("nomBtn");
     btn.disabled = true; btn.textContent = "Submitting…";
 
+    const committeeId = typeof committeeIdSource === "function" ? committeeIdSource() : committeeIdSource;
+    if (!committeeId) {
+      alertBox.textContent = "Please choose which committee this is for.";
+      alertBox.hidden = false;
+      btn.disabled = false; btn.textContent = "Submit nomination";
+      return;
+    }
+
     const nomType = form.querySelector('input[name="nomType"]:checked').value;
     const payload = {
       committee_id: committeeId,
-      year: Number(document.getElementById("nomYear").value),
+      year: YNC_CONFIG.currentYear,
       nomination_type: nomType,
       nominee_name: document.getElementById("nomineeName").value.trim(),
       nominee_phone: document.getElementById("nomineePhone").value.trim(),
@@ -120,9 +133,59 @@ function wireNominationForm(committeeId) {
       alertBox.hidden = false;
       return;
     }
-    successBox.textContent = "Thank you! Your nomination has been sent to the committee for review.";
+    successBox.textContent = "Thank you! Your nomination has been sent to the committee for review. You'll get an email once it's approved.";
     successBox.hidden = false;
     form.reset();
     syncType();
+  });
+}
+
+// ========================================================= ANNA PRASADAM SLOT BOOKING
+function wirePrasadamForm(committeeIdSource) {
+  const form = document.getElementById("prasadamForm");
+  if (!form) return;
+  const alertBox = document.getElementById("prasadamAlert");
+  const successBox = document.getElementById("prasadamSuccess");
+  const dateInput = document.getElementById("prasadamDate");
+  const today = new Date().toISOString().slice(0, 10);
+  if (dateInput) dateInput.min = today;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    alertBox.hidden = true; successBox.hidden = true;
+    const btn = document.getElementById("prasadamBtn");
+    btn.disabled = true; btn.textContent = "Submitting…";
+
+    const committeeId = typeof committeeIdSource === "function" ? committeeIdSource() : committeeIdSource;
+    if (!committeeId) {
+      alertBox.textContent = "Please choose which committee this is for.";
+      alertBox.hidden = false;
+      btn.disabled = false; btn.textContent = "Request slot";
+      return;
+    }
+
+    const payload = {
+      committee_id: committeeId,
+      year: YNC_CONFIG.currentYear,
+      full_name: document.getElementById("prasadamName").value.trim(),
+      phone: document.getElementById("prasadamPhone").value.trim(),
+      email: document.getElementById("prasadamEmail").value.trim() || null,
+      slot_date: document.getElementById("prasadamDate").value,
+      people_count: Number(document.getElementById("prasadamCount").value) || null,
+      notes: document.getElementById("prasadamNotes").value.trim() || null,
+    };
+
+    const { error } = await supabaseClient.from("prasadam_bookings").insert(payload);
+    btn.disabled = false; btn.textContent = "Request slot";
+
+    if (error) {
+      alertBox.textContent = error.message || "Could not submit your request.";
+      alertBox.hidden = false;
+      return;
+    }
+    successBox.textContent = "Thank you! Your Anna Prasadam slot request has been sent to the committee — they'll confirm by email or phone.";
+    successBox.hidden = false;
+    form.reset();
+    if (dateInput) dateInput.min = today;
   });
 }

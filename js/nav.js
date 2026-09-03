@@ -14,6 +14,7 @@
       <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">&#9776;</button>
       <nav class="nav-links" id="navLinks">
         <a href="${ROOT}index.html" data-page="home">Home</a>
+        <a href="${ROOT}forms.html" data-page="forms">Forms</a>
         <a href="${ROOT}notices.html" data-page="notices">Notice Board</a>
         <a href="${ROOT}team.html" data-page="team">Association Team</a>
         <div class="nav-dropdown" id="festivalDropdown">
@@ -62,6 +63,7 @@
       <div>
         <h4>Quick Links</h4>
         <ul>
+          <li><a href="${ROOT}forms.html">Forms</a></li>
           <li><a href="${ROOT}notices.html">Notice Board</a></li>
           <li><a href="${ROOT}team.html">Association Team</a></li>
           <li><a href="${ROOT}complaints.html">Raise a Complaint</a></li>
@@ -128,7 +130,7 @@
       .maybeSingle();
 
     const name = (profile && profile.full_name) || session.user.email;
-    const isStaff = profile && (profile.role === "association" || profile.role === "admin");
+    const isStaff = profile && profile.role === "admin";
     area.innerHTML = `
       ${isStaff ? `<a href="${ROOT}admin/dashboard.html" class="btn btn-primary btn-sm">Dashboard</a>` : ""}
       <span class="text-muted" style="font-size:0.85rem; margin:0 4px;">Hi, ${escapeHtml(name)}</span>

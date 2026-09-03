@@ -1,5 +1,5 @@
 // YNC Association — Staff dashboard logic
-// All writes rely on Supabase RLS: only profiles.role in ('association','admin') can succeed.
+// All writes rely on Supabase RLS: only profiles.role = 'admin' can succeed.
 
 let ME = null;      // auth user
 let MY_ROLE = null; // profile row
@@ -21,13 +21,23 @@ document.addEventListener("click", (e) => {
 
 function esc(s) { return window.yncEscapeHtml(s == null ? "" : s); }
 
+// Opens a pre-filled email in the admin's own mail client. The site is static with
+// no email-sending backend configured, so this is the "notify by email" mechanism:
+// one click here, then the admin's mail app sends it. See README for upgrading to
+// fully-automatic sending via a Supabase Edge Function + email API.
+function draftEmail(toEmail, subject, body) {
+  if (!toEmail) return false;
+  window.open(`mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, "_blank");
+  return true;
+}
+
 // ---------- Boot ----------
 async function boot() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) return showGate();
 
   const { data: profile } = await supabaseClient.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
-  if (!profile || (profile.role !== "association" && profile.role !== "admin")) return showGate(true);
+  if (!profile || profile.role !== "admin") return showGate(true);
 
   ME = session.user;
   MY_ROLE = profile;
@@ -44,7 +54,7 @@ async function boot() {
 
 function showGate(wrongRole) {
   document.getElementById("gate").innerHTML = wrongRole
-    ? `<div class="card gate-card"><div class="icon">🚫</div><h3>Staff access only</h3><p class="text-muted">Your account doesn't have Association or Festival Committee staff access. Contact the association if you believe this is a mistake.</p><a href="../index.html" class="btn btn-outline">Back to site</a></div>`
+    ? `<div class="card gate-card"><div class="icon">🚫</div><h3>Staff access only</h3><p class="text-muted">This dashboard is admin-only. Your account is signed in but doesn't have admin access yet — ask an existing admin to grant it from Staff Dashboard → Staff Access.</p><a href="../index.html" class="btn btn-outline">Back to site</a></div>`
     : `<div class="card gate-card"><div class="icon">🔒</div><h3>Staff sign-in required</h3><p class="text-muted">This dashboard is for Association &amp; Festival Committee staff.</p><a href="../login.html" class="btn btn-primary">Sign in</a></div>`;
 }
 
@@ -64,6 +74,7 @@ function renderTab(tab) {
     overview: renderOverview, notices: renderNotices, complaints: renderComplaints,
     nominations: renderNominations, team: renderTeam, "festival-team": renderFestivalTeam,
     photos: renderPhotos, residents: renderResidents, finances: renderFinances,
+    prasadam: renderPrasadam, staff: renderStaffUsers,
   };
   (map[tab] || renderOverview)();
 }
@@ -74,11 +85,13 @@ async function renderOverview() {
   wrap.innerHTML = `<div class="grid grid-4" id="ovStats">
     <div class="card skeleton" style="height:90px;"></div><div class="card skeleton" style="height:90px;"></div>
     <div class="card skeleton" style="height:90px;"></div><div class="card skeleton" style="height:90px;"></div>
+    <div class="card skeleton" style="height:90px;"></div>
   </div>`;
 
-  const [{ count: openC }, { count: pendingNom }, { count: residents }, { count: notices }] = await Promise.all([
+  const [{ count: openC }, { count: pendingNom }, { count: pendingPrasadam }, { count: residents }, { count: notices }] = await Promise.all([
     supabaseClient.from("complaints").select("*", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
     supabaseClient.from("nominations").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabaseClient.from("prasadam_bookings").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabaseClient.from("residents").select("*", { count: "exact", head: true }),
     supabaseClient.from("notices").select("*", { count: "exact", head: true }),
   ]);
@@ -86,6 +99,7 @@ async function renderOverview() {
   document.getElementById("ovStats").innerHTML = `
     <div class="card stat-card"><div class="num">${openC ?? 0}</div><div class="label">Open Complaints</div></div>
     <div class="card stat-card"><div class="num">${pendingNom ?? 0}</div><div class="label">Pending Nominations</div></div>
+    <div class="card stat-card"><div class="num">${pendingPrasadam ?? 0}</div><div class="label">Pending Prasadam Slots</div></div>
     <div class="card stat-card"><div class="num">${residents ?? 0}</div><div class="label">Residents Listed</div></div>
     <div class="card stat-card"><div class="num">${notices ?? 0}</div><div class="label">Total Notices</div></div>
   `;
@@ -293,6 +307,7 @@ async function renderNominations() {
       <p class="text-muted" style="font-size:0.88rem;">${n.nominee_phone ? "📞 "+esc(n.nominee_phone)+" " : ""}${n.nominee_email ? "✉️ "+esc(n.nominee_email) : ""}</p>
       ${n.nomination_type === "other" ? `<p style="font-size:0.85rem;">Nominated by: <strong>${esc(n.nominated_by_name)}</strong> ${n.nominated_by_phone ? "("+esc(n.nominated_by_phone)+")" : ""}</p>` : `<p style="font-size:0.85rem;">Self-nomination</p>`}
       ${n.message ? `<p style="font-size:0.88rem; background:var(--bg); padding:8px 10px; border-radius:8px;">${esc(n.message)}</p>` : ""}
+      ${n.status === "rejected" && n.rejection_reason ? `<p style="font-size:0.85rem; color:var(--danger);"><strong>Rejection reason (shown to nominee on Check Status):</strong> ${esc(n.rejection_reason)}</p>` : ""}
       ${n.status === "pending" ? `
         <div class="flex gap-8" style="margin-top:8px;">
           <button class="btn btn-primary btn-sm" data-approve="${n.id}">Approve</button>
@@ -302,12 +317,104 @@ async function renderNominations() {
   `).join("");
 
   list.querySelectorAll("[data-approve]").forEach(b => b.addEventListener("click", async () => {
+    const n = data.find(x => x.id === b.dataset.approve);
     await supabaseClient.from("nominations").update({ status: "approved" }).eq("id", b.dataset.approve);
+    if (n) {
+      const committeeName = n.festival_committees?.name || "Festival Committee";
+      const closing = n.festival_committees?.slug === "ganesh" ? "Ganpati Bappa Morya!"
+        : n.festival_committees?.slug === "durga" ? "Jai Durga Mata!"
+        : "";
+      const sent = draftEmail(
+        n.nominee_email,
+        `You're approved as a volunteer — ${committeeName} ${n.year}`,
+        `Hi ${n.nominee_name},\n\nGreat news — your nomination to volunteer with the ${committeeName} (${n.year}) has been approved by YNC Association. We'll be in touch with next steps soon.\n\n${closing ? closing + "\n" : ""}— YNC Association`
+      );
+      if (!sent) alert(`Approved. No email on file for ${n.nominee_name} — let them know some other way.`);
+    }
     renderNominations();
   }));
   list.querySelectorAll("[data-reject]").forEach(b => b.addEventListener("click", async () => {
-    await supabaseClient.from("nominations").update({ status: "rejected" }).eq("id", b.dataset.reject);
+    const n = data.find(x => x.id === b.dataset.reject);
+    const reason = prompt(`Why is ${n ? n.nominee_name : "this nomination"} being rejected?\n\nThis reason (rephrased) will be shown to the person on the site's Forms → Check Status page.`);
+    if (reason === null) return; // staff cancelled
+    await supabaseClient.from("nominations").update({ status: "rejected", rejection_reason: reason.trim() || null }).eq("id", b.dataset.reject);
     renderNominations();
+  }));
+}
+
+// ========================================================= ANNA PRASADAM BOOKINGS
+let prasadamStatusFilter = "pending";
+async function renderPrasadam() {
+  const wrap = document.getElementById("tabContent");
+  wrap.innerHTML = `
+    <h2>Anna Prasadam Slot Bookings</h2>
+    <div class="pill-tabs" id="prasadamFilterTabs">
+      <button class="pill-tab active" data-f="pending">Pending</button>
+      <button class="pill-tab" data-f="approved">Approved</button>
+      <button class="pill-tab" data-f="rejected">Rejected</button>
+      <button class="pill-tab" data-f="all">All</button>
+    </div>
+    <div id="prasadamList"></div>`;
+
+  document.querySelectorAll("#prasadamFilterTabs .pill-tab").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("#prasadamFilterTabs .pill-tab").forEach(x => x.classList.remove("active"));
+    b.classList.add("active"); prasadamStatusFilter = b.dataset.f; loadPrasadamList();
+  }));
+  loadPrasadamList();
+}
+
+async function loadPrasadamList() {
+  const list = document.getElementById("prasadamList");
+  list.innerHTML = `<div class="card skeleton" style="height:100px;"></div>`;
+  let q = supabaseClient.from("prasadam_bookings").select("*, festival_committees(name, slug)").order("slot_date", { ascending: true });
+  if (prasadamStatusFilter !== "all") q = q.eq("status", prasadamStatusFilter);
+  const { data } = await q;
+
+  if (!data || data.length === 0) { list.innerHTML = `<div class="empty-state"><div class="icon">🍚</div>No bookings here.</div>`; return; }
+
+  list.innerHTML = data.map(p => `
+    <div class="card" style="margin-bottom:12px;">
+      <div class="flex justify-between items-center gap-8" style="flex-wrap:wrap;">
+        <span class="badge badge-${p.status}">${esc(p.status)}</span>
+        <span class="text-muted" style="font-size:0.8rem;">Requested ${window.yncFormatDateTime(p.created_at)}</span>
+      </div>
+      <h3 style="margin:10px 0 2px;">${esc(p.full_name)} <span class="text-muted" style="font-weight:400;">— ${window.yncFormatDate(p.slot_date)}${p.festival_committees?.name ? " · " + esc(p.festival_committees.name) : ""}</span></h3>
+      <p style="font-size:0.88rem;">📞 <a href="tel:${esc(p.phone)}">${esc(p.phone)}</a>${p.email ? " · ✉️ " + esc(p.email) : ""}${p.people_count ? " · ~" + p.people_count + " people" : ""}</p>
+      ${p.notes ? `<p style="font-size:0.88rem; background:var(--bg); padding:8px 10px; border-radius:8px;">${esc(p.notes)}</p>` : ""}
+      ${p.status === "rejected" && p.rejection_reason ? `<p style="font-size:0.85rem; color:var(--danger);"><strong>Rejection reason (shown to requester on Check Status):</strong> ${esc(p.rejection_reason)}</p>` : ""}
+      ${p.status === "pending" ? `
+        <div class="flex gap-8" style="margin-top:8px;">
+          <button class="btn btn-primary btn-sm" data-approve="${p.id}">Approve &amp; confirm</button>
+          <button class="btn btn-danger btn-sm" data-reject="${p.id}">Reject</button>
+        </div>` : ""}
+    </div>
+  `).join("");
+
+  list.querySelectorAll("[data-approve]").forEach(b => b.addEventListener("click", async () => {
+    const p = data.find(x => x.id === b.dataset.approve);
+    await supabaseClient.from("prasadam_bookings").update({ status: "approved" }).eq("id", b.dataset.approve);
+    if (p) {
+      const dateStr = window.yncFormatDate(p.slot_date);
+      const committeeName = p.festival_committees?.name || "committee";
+      const closing = p.festival_committees?.slug === "ganesh" ? "Ganpati Bappa Morya!"
+        : p.festival_committees?.slug === "durga" ? "Jai Durga Mata!"
+        : "";
+      const sent = draftEmail(
+        p.email,
+        `Your Anna Prasadam slot is confirmed — ${dateStr}`,
+        `Hi ${p.full_name},\n\nYour Anna Prasadam slot for ${dateStr} is confirmed. Thank you for supporting the ${committeeName}!\n\nIf you have questions, call us or reply to this email.\n\n${closing ? closing + "\n" : ""}— YNC Association`
+      );
+      if (!sent) alert(`Approved. No email on file — call ${p.full_name} at ${p.phone} to confirm.`);
+      else alert(`Email drafted. Also consider calling ${p.full_name} at ${p.phone} to confirm directly.`);
+    }
+    loadPrasadamList();
+  }));
+  list.querySelectorAll("[data-reject]").forEach(b => b.addEventListener("click", async () => {
+    const p = data.find(x => x.id === b.dataset.reject);
+    const reason = prompt(`Why is ${p ? p.full_name : "this slot request"} being rejected?\n\nThis reason (rephrased) will be shown to the person on the site's Forms → Check Status page.`);
+    if (reason === null) return; // staff cancelled
+    await supabaseClient.from("prasadam_bookings").update({ status: "rejected", rejection_reason: reason.trim() || null }).eq("id", b.dataset.reject);
+    loadPrasadamList();
   }));
 }
 
@@ -685,6 +792,134 @@ function openResidentForm(existing) {
   });
 }
 
+// ========================================================= STAFF ACCESS
+// Anyone can create an account (login.html → "Create an account"); it starts as
+// role "user" — no dashboard access, same view of the site as a signed-out visitor.
+// An existing admin promotes an account to "admin" here to grant full Staff
+// Dashboard access. Only "admin" accounts can sign in to this dashboard at all.
+async function renderStaffUsers() {
+  const wrap = document.getElementById("tabContent");
+  wrap.innerHTML = `
+    <div class="flex justify-between items-center gap-12" style="flex-wrap:wrap;">
+      <h2 style="margin:0;">Staff Access</h2>
+    </div>
+    <p class="text-muted" style="margin-top:10px; font-size:0.85rem;">
+      Every new account (via Sign in → Create an account) starts as <strong>user</strong> —
+      no dashboard access, the same public view everyone gets without signing in at all.
+      Promote someone to <strong>admin</strong> below to give them full Staff Dashboard
+      access. Only admins can sign in to this dashboard.
+    </p>
+    <div class="table-wrap" style="margin-top:14px;"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+      <tbody id="staffUsersBody"><tr><td colspan="6" class="text-muted">Loading…</td></tr></tbody>
+    </table></div>
+    <div id="retiredSection" style="margin-top:22px;"></div>`;
+  loadStaffUsers();
+}
+
+async function loadStaffUsers() {
+  const body = document.getElementById("staffUsersBody");
+  const retiredWrap = document.getElementById("retiredSection");
+  const { data, error } = await supabaseClient.from("profiles").select("*").order("created_at", { ascending: false });
+  if (error) { body.innerHTML = `<tr><td colspan="6" class="text-muted">${esc(error.message)}</td></tr>`; return; }
+
+  const active = (data || []).filter(p => !p.retired);
+  const retired = (data || []).filter(p => p.retired);
+
+  if (active.length === 0) { body.innerHTML = `<tr><td colspan="6" class="text-muted">No active accounts.</td></tr>`; }
+  else {
+    body.innerHTML = active.map(p => `
+      <tr>
+        <td>${esc(p.full_name)}${p.id === ME.id ? ' <span class="text-muted" style="font-size:0.8em;">(you)</span>' : ""}</td>
+        <td>${esc(p.email)}</td>
+        <td>${esc(p.phone) || "—"}</td>
+        <td><span class="badge ${p.role === "admin" ? "badge-approved" : "badge-cat"}">${esc(p.role)}</span></td>
+        <td>${window.yncFormatDate(p.created_at)}</td>
+        <td class="flex gap-8">
+          ${p.role === "admin"
+            ? `<button class="btn btn-outline btn-sm" data-demote="${p.id}">Remove admin</button>`
+            : `<button class="btn btn-primary btn-sm" data-promote="${p.id}">Make admin</button>`}
+          <button class="btn btn-danger btn-sm" data-retire="${p.id}">Retire</button>
+        </td>
+      </tr>`).join("");
+    body.querySelectorAll("[data-promote]").forEach(b => b.addEventListener("click", () => setUserRole(b.dataset.promote, "admin", data)));
+    body.querySelectorAll("[data-demote]").forEach(b => b.addEventListener("click", () => setUserRole(b.dataset.demote, "user", data)));
+    body.querySelectorAll("[data-retire]").forEach(b => b.addEventListener("click", () => retireUser(b.dataset.retire, data)));
+  }
+
+  if (retired.length === 0) { retiredWrap.innerHTML = ""; return; }
+  retiredWrap.innerHTML = `
+    <details>
+      <summary style="cursor:pointer; font-size:0.9rem; color:var(--text-muted);">Retired accounts (${retired.length})</summary>
+      <p class="text-muted" style="font-size:0.82rem; margin-top:8px;">
+        Retiring drops an account to <strong>user</strong> (no dashboard access) and hides it
+        from the list above. It doesn't delete the underlying sign-in — that needs direct
+        database access — but a retired account has no privileges even if it signs in.
+      </p>
+      <div class="table-wrap" style="margin-top:8px;"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Retired</th><th></th></tr></thead>
+        <tbody>
+          ${retired.map(p => `
+            <tr>
+              <td>${esc(p.full_name)}</td>
+              <td>${esc(p.email)}</td>
+              <td>${p.retired_at ? window.yncFormatDate(p.retired_at) : "—"}</td>
+              <td><button class="btn btn-outline btn-sm" data-reactivate="${p.id}">Reactivate</button></td>
+            </tr>`).join("")}
+        </tbody>
+      </table></div>
+    </details>`;
+  retiredWrap.querySelectorAll("[data-reactivate]").forEach(b => b.addEventListener("click", () => reactivateUser(b.dataset.reactivate)));
+}
+
+async function setUserRole(id, newRole, allProfiles) {
+  const target = allProfiles.find(p => p.id === id);
+  const label = (target && (target.full_name || target.email)) || "this account";
+  if (newRole === "user") {
+    const adminCount = allProfiles.filter(p => p.role === "admin" && !p.retired).length;
+    if (adminCount <= 1 && target && target.role === "admin") {
+      alert("You can't remove the last admin — promote someone else to admin first.");
+      return;
+    }
+    if (id === ME.id) {
+      if (!confirm("This removes your own admin access — you'll be signed out of this dashboard immediately. Continue?")) return;
+    } else if (!confirm(`Remove admin access from ${label}?`)) {
+      return;
+    }
+  } else if (!confirm(`Give ${label} full Staff Dashboard access?`)) {
+    return;
+  }
+  const { error } = await supabaseClient.from("profiles").update({ role: newRole }).eq("id", id);
+  if (error) { alert(error.message); return; }
+  if (id === ME.id && newRole === "user") { return boot(); } // re-run the gate check on yourself
+  loadStaffUsers();
+}
+
+async function retireUser(id, allProfiles) {
+  const target = allProfiles.find(p => p.id === id);
+  const label = (target && (target.full_name || target.email)) || "this account";
+  const adminCount = allProfiles.filter(p => p.role === "admin" && !p.retired).length;
+  if (target && target.role === "admin" && adminCount <= 1) {
+    alert("You can't retire the last admin — promote someone else to admin first.");
+    return;
+  }
+  if (id === ME.id) {
+    if (!confirm("This retires your own account — you'll be signed out of this dashboard immediately. Continue?")) return;
+  } else if (!confirm(`Retire ${label}? This drops them to "user" and hides them from the active list. You can reactivate later.`)) {
+    return;
+  }
+  const { error } = await supabaseClient.from("profiles").update({ role: "user", retired: true, retired_at: new Date().toISOString() }).eq("id", id);
+  if (error) { alert(error.message); return; }
+  if (id === ME.id) { return boot(); }
+  loadStaffUsers();
+}
+
+async function reactivateUser(id) {
+  const { error } = await supabaseClient.from("profiles").update({ retired: false, retired_at: null }).eq("id", id);
+  if (error) { alert(error.message); return; }
+  loadStaffUsers();
+}
+
 // ========================================================= FINANCES
 const FINANCE_SCOPE_LABELS = { association: "Association", ganesh: "Ganesh Committee", durga: "Durga Matha Committee" };
 let currentFinanceScope = "association";
@@ -694,32 +929,34 @@ async function renderFinances() {
   wrap.innerHTML = `
     <div class="flex justify-between items-center gap-12" style="flex-wrap:wrap;">
       <h2 style="margin:0;">Finances</h2>
-      <div class="flex items-center gap-8">
+      <div class="flex items-center gap-8" style="flex-wrap:wrap;">
         <select id="financeScopeSelect" style="width:auto;">
           <option value="association">Association</option>
           <option value="ganesh">Ganesh Committee</option>
           <option value="durga">Durga Matha Committee</option>
         </select>
+        <button class="btn btn-outline btn-sm" id="btnImportCsv">Import CSV</button>
         <button class="btn btn-primary btn-sm" id="btnAddFinance">+ Add entry</button>
       </div>
     </div>
-    <p class="text-muted" style="margin-top:10px; font-size:0.85rem;">Every entry here appears immediately on the matching public Finance page — no personal data, so keep descriptions colony-appropriate.</p>
+    <p class="text-muted" style="margin-top:10px; font-size:0.85rem;">Every entry here appears immediately on the matching public Finance page — no personal data, so keep descriptions colony-appropriate. Attach a receipt (PDF/photo) on an entry, or import several at once from a CSV.</p>
     <div class="table-wrap" style="margin-top:14px;"><table>
-      <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th><th></th></tr></thead>
-      <tbody id="financeBody"><tr><td colspan="6" class="text-muted">Loading…</td></tr></tbody>
+      <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th><th>Receipt</th><th></th></tr></thead>
+      <tbody id="financeBody"><tr><td colspan="7" class="text-muted">Loading…</td></tr></tbody>
     </table></div>`;
 
   const sel = document.getElementById("financeScopeSelect");
   sel.value = currentFinanceScope;
   sel.addEventListener("change", () => { currentFinanceScope = sel.value; loadFinanceEntries(); });
   document.getElementById("btnAddFinance").addEventListener("click", () => openFinanceForm(null));
+  document.getElementById("btnImportCsv").addEventListener("click", () => openCsvImportModal());
   loadFinanceEntries();
 }
 
 async function loadFinanceEntries() {
   const { data } = await supabaseClient.from("finance_entries").select("*").eq("scope", currentFinanceScope).order("entry_date", { ascending: false });
   const body = document.getElementById("financeBody");
-  if (!data || data.length === 0) { body.innerHTML = `<tr><td colspan="6" class="text-muted">No entries for ${FINANCE_SCOPE_LABELS[currentFinanceScope]} yet.</td></tr>`; return; }
+  if (!data || data.length === 0) { body.innerHTML = `<tr><td colspan="7" class="text-muted">No entries for ${FINANCE_SCOPE_LABELS[currentFinanceScope]} yet.</td></tr>`; return; }
   body.innerHTML = data.map(f => `
     <tr>
       <td>${window.yncFormatDate(f.entry_date)}</td>
@@ -727,6 +964,7 @@ async function loadFinanceEntries() {
       <td>${esc(f.category)}</td>
       <td>${esc(f.description)||"—"}</td>
       <td>₹${Number(f.amount).toLocaleString("en-IN", {minimumFractionDigits:2})}</td>
+      <td>${f.receipt_url ? `<a href="${esc(f.receipt_url)}" target="_blank" rel="noopener">🧾 view</a>` : "—"}</td>
       <td class="flex gap-8">
         <button class="btn btn-ghost btn-sm" data-edit="${f.id}">Edit</button>
         <button class="btn btn-danger btn-sm" data-del="${f.id}">Delete</button>
@@ -746,6 +984,15 @@ function openFinanceForm(existing) {
     <h3>${existing ? "Edit" : "Add"} finance entry — ${FINANCE_SCOPE_LABELS[currentFinanceScope]}</h3>
     <div id="financeFormAlert" class="alert alert-error" hidden></div>
     <form id="financeForm">
+      <div class="field">
+        <label>Receipt / bill (optional — PDF or photo)</label>
+        <input type="file" id="fReceiptFile" accept="image/*,application/pdf">
+        <div class="field-hint">
+          ${existing?.receipt_url ? `Current: <a href="${esc(existing.receipt_url)}" target="_blank" rel="noopener">view attached receipt</a>. Choosing a new file replaces it. ` : ""}
+          We'll try to auto-read the amount/date from it below — always double-check before saving.
+        </div>
+        <div id="fReceiptScanStatus" class="text-muted" style="font-size:0.82rem; margin-top:4px;" hidden></div>
+      </div>
       <div class="grid grid-2">
         <div class="field"><label>Type</label>
           <select id="fEntryType">
@@ -760,11 +1007,54 @@ function openFinanceForm(existing) {
         <div class="field"><label>Amount (₹)</label><input type="number" step="0.01" min="0" id="fAmount" value="${existing?.amount ?? ""}" required></div>
       </div>
       <div class="field"><label>Description (optional)</label><textarea id="fDescription">${esc(existing?.description)}</textarea></div>
-      <div class="flex gap-8"><button class="btn btn-primary" type="submit">Save</button><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button></div>
+      <div class="flex gap-8"><button class="btn btn-primary" type="submit" id="fSaveBtn">Save</button><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button></div>
     </form>
   `);
+
+  document.getElementById("fReceiptFile").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const statusEl = document.getElementById("fReceiptScanStatus");
+    statusEl.hidden = false;
+    statusEl.textContent = "Reading document… this can take a few seconds.";
+    try {
+      const text = await extractTextFromFile(file, (pct) => { statusEl.textContent = `Reading document… ${pct}%`; });
+      const amount = guessAmountFromText(text);
+      const date = guessDateFromText(text);
+      const applied = [];
+      if (amount) { document.getElementById("fAmount").value = amount; applied.push(`amount ₹${amount}`); }
+      if (date) { document.getElementById("fDate").value = date; applied.push(`date ${date}`); }
+      statusEl.textContent = applied.length
+        ? `Auto-filled ${applied.join(" and ")} from the document — this is a best-effort guess, please verify before saving.`
+        : "Couldn't confidently read an amount or date from this document — please fill them in manually. (It'll still be attached.)";
+    } catch (err) {
+      statusEl.textContent = "Couldn't read this document automatically — please fill the fields in manually. (It'll still be attached.)";
+    }
+  });
+
   document.getElementById("financeForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const alertBox = document.getElementById("financeFormAlert");
+    const saveBtn = document.getElementById("fSaveBtn");
+    alertBox.hidden = true;
+    saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+
+    let receiptUrl = existing?.receipt_url || null;
+    const fileInput = document.getElementById("fReceiptFile");
+    if (fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      const path = `finance-receipts/${currentFinanceScope}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: upErr } = await supabaseClient.storage.from("public-media").upload(path, file);
+      if (upErr) {
+        alertBox.textContent = upErr.message || "Could not upload the receipt.";
+        alertBox.hidden = false;
+        saveBtn.disabled = false; saveBtn.textContent = "Save";
+        return;
+      }
+      const { data: pub } = supabaseClient.storage.from("public-media").getPublicUrl(path);
+      receiptUrl = pub.publicUrl;
+    }
+
     const payload = {
       scope: currentFinanceScope,
       entry_type: document.getElementById("fEntryType").value,
@@ -772,13 +1062,147 @@ function openFinanceForm(existing) {
       category: document.getElementById("fCategory").value.trim(),
       description: document.getElementById("fDescription").value.trim() || null,
       amount: Number(document.getElementById("fAmount").value) || 0,
+      receipt_url: receiptUrl,
     };
     if (!existing) payload.created_by = ME.id;
     const q = existing ? supabaseClient.from("finance_entries").update(payload).eq("id", existing.id) : supabaseClient.from("finance_entries").insert(payload);
     const { error } = await q;
-    if (error) { const a = document.getElementById("financeFormAlert"); a.textContent = error.message; a.hidden = false; return; }
+    saveBtn.disabled = false; saveBtn.textContent = "Save";
+    if (error) { alertBox.textContent = error.message; alertBox.hidden = false; return; }
     closeModal(); loadFinanceEntries();
   });
+}
+
+// ========================================================= FINANCE CSV IMPORT
+function openCsvImportModal() {
+  openModal(`
+    <h3>Import finance entries — ${FINANCE_SCOPE_LABELS[currentFinanceScope]}</h3>
+    <p class="text-muted" style="font-size:0.88rem;">CSV columns (first row = header, any order): <code>date, type, category, amount, description</code> (description optional). Date as <code>yyyy-mm-dd</code> or <code>dd/mm/yyyy</code>; type must be <code>income</code> or <code>expense</code>.</p>
+    <div id="csvAlert" class="alert alert-error" hidden></div>
+    <div class="field"><input type="file" id="csvFile" accept=".csv,text/csv"></div>
+    <div id="csvPreviewWrap" style="margin-top:10px;"></div>
+    <div class="flex gap-8" style="margin-top:12px;">
+      <button class="btn btn-primary" id="csvConfirmBtn" disabled>Import valid rows</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+
+  let parsedRows = [];
+
+  document.getElementById("csvFile").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const { valid, invalid } = parseFinanceCsv(text);
+    parsedRows = valid;
+
+    const wrap = document.getElementById("csvPreviewWrap");
+    wrap.innerHTML = `
+      <p style="font-size:0.85rem;"><strong>${valid.length}</strong> valid row${valid.length === 1 ? "" : "s"} ready to import${invalid.length ? `, <strong>${invalid.length}</strong> skipped (see below)` : ""}.</p>
+      ${valid.length ? `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Description</th></tr></thead><tbody>${
+        valid.slice(0, 20).map(r => `<tr><td>${esc(r.entry_date)}</td><td>${esc(r.entry_type)}</td><td>${esc(r.category)}</td><td>₹${Number(r.amount).toLocaleString("en-IN")}</td><td>${esc(r.description) || "—"}</td></tr>`).join("")
+      }</tbody></table></div>${valid.length > 20 ? `<p class="text-muted" style="font-size:0.8rem;">…and ${valid.length - 20} more.</p>` : ""}` : ""}
+      ${invalid.length ? `<div class="alert alert-error" style="margin-top:10px; display:block;">Skipped rows:<br>${invalid.map(x => esc(`Row ${x.row}: ${x.reason}`)).join("<br>")}</div>` : ""}
+    `;
+    document.getElementById("csvConfirmBtn").disabled = valid.length === 0;
+  });
+
+  document.getElementById("csvConfirmBtn").addEventListener("click", async () => {
+    if (!parsedRows.length) return;
+    const btn = document.getElementById("csvConfirmBtn");
+    btn.disabled = true; btn.textContent = "Importing…";
+    const rows = parsedRows.map(r => ({ ...r, scope: currentFinanceScope, created_by: ME.id }));
+    const { error } = await supabaseClient.from("finance_entries").insert(rows);
+    if (error) {
+      const a = document.getElementById("csvAlert");
+      a.textContent = error.message;
+      a.hidden = false;
+      btn.disabled = false; btn.textContent = "Import valid rows";
+      return;
+    }
+    closeModal();
+    loadFinanceEntries();
+  });
+}
+
+function parseFinanceCsv(text) {
+  const rows = parseCsvRows(text);
+  if (rows.length === 0) return { valid: [], invalid: [] };
+  const header = rows[0].map(h => h.trim().toLowerCase());
+  const idx = {
+    date: header.indexOf("date"),
+    type: header.indexOf("type"),
+    category: header.indexOf("category"),
+    amount: header.indexOf("amount"),
+    description: header.indexOf("description"),
+  };
+
+  const valid = [];
+  const invalid = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.length === 1 && row[0].trim() === "") continue; // blank line
+
+    const rawDate = idx.date >= 0 ? (row[idx.date] || "").trim() : "";
+    const rawType = idx.type >= 0 ? (row[idx.type] || "").trim().toLowerCase() : "";
+    const rawCategory = idx.category >= 0 ? (row[idx.category] || "").trim() : "";
+    const rawAmount = idx.amount >= 0 ? (row[idx.amount] || "").trim().replace(/[₹,]/g, "") : "";
+    const rawDescription = idx.description >= 0 ? (row[idx.description] || "").trim() : "";
+
+    const entry_date = normalizeCsvDate(rawDate);
+    const amount = parseFloat(rawAmount);
+    const entry_type = (rawType === "income" || rawType === "expense") ? rawType : null;
+
+    if (!entry_date) { invalid.push({ row: i + 1, reason: `unrecognized date "${rawDate}"` }); continue; }
+    if (!entry_type) { invalid.push({ row: i + 1, reason: `type must be "income" or "expense", got "${rawType}"` }); continue; }
+    if (!rawCategory) { invalid.push({ row: i + 1, reason: "missing category" }); continue; }
+    if (isNaN(amount) || amount <= 0) { invalid.push({ row: i + 1, reason: `invalid amount "${rawAmount}"` }); continue; }
+
+    valid.push({ entry_date, entry_type, category: rawCategory, amount, description: rawDescription || null });
+  }
+  return { valid, invalid };
+}
+
+function normalizeCsvDate(raw) {
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const m = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let [, d, mo, y] = m;
+    if (y.length === 2) y = "20" + y;
+    const day = Number(d), month = Number(mo);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+// Minimal RFC4180-ish CSV parser: handles quoted fields with embedded commas/newlines/escaped quotes.
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field); field = "";
+    } else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field); field = "";
+      rows.push(row); row = [];
+    } else {
+      field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length === 1 && r[0] === ""));
 }
 
 boot();

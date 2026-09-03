@@ -62,7 +62,7 @@ async function initFinancePage(opts) {
   }
   tableWrap.innerHTML = `
     <div class="table-wrap"><table>
-      <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
+      <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th><th>Receipt</th></tr></thead>
       <tbody>
         ${rows.map(r => `
           <tr>
@@ -73,6 +73,7 @@ async function initFinancePage(opts) {
             <td style="color:${r.entry_type === "income" ? "var(--success)" : "var(--danger)"}; font-weight:600;">
               ${r.entry_type === "income" ? "+" : "−"}${inr(r.amount)}
             </td>
+            <td>${r.receipt_url ? `<a href="${yncEscapeHtml(r.receipt_url)}" target="_blank" rel="noopener" title="View attached receipt">🧾</a>` : "—"}</td>
           </tr>`).join("")}
       </tbody>
     </table></div>

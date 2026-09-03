@@ -55,6 +55,11 @@
           <h3>Notice Board</h3>
           <p class="text-muted" style="font-size:0.9rem;">Announcements, maintenance notices &amp; updates from the association.</p>
         </a>
+        <a href="forms.html" class="card card-hover">
+          <div style="font-size:1.6rem;">🙋</div>
+          <h3>Forms</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Volunteer nominations, Anna Prasadam booking, and check your submission status.</p>
+        </a>
         <a href="team.html" class="card card-hover">
           <div style="font-size:1.6rem;">🧑‍🤝‍🧑</div>
           <h3>Association Team</h3>
@@ -134,22 +139,35 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/nav.js"></script>
 <script>
+async function safeQuery(queryBuilder, fallback) {
+  // Supabase JS v2 query builders are "thenable", not real Promises — they have
+  // no .catch() method, so chaining .catch() on one throws synchronously. Awaiting
+  // inside a try/catch works because `await` only needs a .then(), and this wrapper
+  // returns a genuine Promise that's safe to use inside Promise.all().
+  try {
+    return await queryBuilder;
+  } catch (err) {
+    console.error("loadHomeData query failed:", err);
+    return fallback;
+  }
+}
+
 async function loadHomeData() {
   const [{ data: residentCount }, { data: notices }, { count: openCount }] = await Promise.all([
-    supabaseClient.rpc("public_resident_count").catch(() => ({ data: null })),
-    supabaseClient.from("notices").select("id,type,title,body,category,is_pinned,published_at")
+    safeQuery(supabaseClient.rpc("public_resident_count"), { data: null }),
+    safeQuery(supabaseClient.from("notices").select("id,type,title,body,category,is_pinned,published_at")
       .lte("published_at", new Date().toISOString())
       .order("is_pinned", { ascending: false })
       .order("published_at", { ascending: false })
-      .limit(3),
-    supabaseClient.from("complaints").select("*", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
+      .limit(3), { data: [] }),
+    safeQuery(supabaseClient.from("complaints").select("*", { count: "exact", head: true }).in("status", ["open", "in_progress"]), { count: null }),
   ]);
 
   document.getElementById("statResidents").textContent = residentCount != null ? residentCount : "—";
   document.getElementById("statOpenComplaints").textContent = openCount != null ? openCount : "—";
 
-  const { count: noticeCount } = await supabaseClient.from("notices").select("*", { count: "exact", head: true })
-    .lte("published_at", new Date().toISOString());
+  const { count: noticeCount } = await safeQuery(supabaseClient.from("notices").select("*", { count: "exact", head: true })
+    .lte("published_at", new Date().toISOString()), { count: null });
   document.getElementById("statNotices").textContent = noticeCount != null ? noticeCount : "—";
 
   const wrap = document.getElementById("homeNotices");

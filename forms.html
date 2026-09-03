@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forms — YNC Association</title>
+<link rel="icon" href="assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="forms">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero" style="padding:44px 0 30px;">
+    <div class="container">
+      <span class="eyebrow">🙋 Get Involved</span>
+      <h1>Forms</h1>
+      <p class="lead">Nominate a volunteer, book an Anna Prasadam slot, or check the status of something you already submitted — for the Ganesh Committee or the Durga Matha Committee.</p>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container" style="max-width:640px;">
+      <div class="pill-tabs" id="formsTopTabs">
+        <button class="pill-tab active" data-t="nominate">🙋 Volunteer Nomination</button>
+        <button class="pill-tab" data-t="prasadam">🍚 Anna Prasadam Booking</button>
+        <button class="pill-tab" data-t="status">🔍 Check Status</button>
+      </div>
+
+      <!-- ===================== Volunteer Nomination ===================== -->
+      <div id="formsNomPanel">
+        <div class="card">
+          <h3 style="margin-bottom:4px;">Nominate a Volunteer</h3>
+          <p class="text-muted">Nominate yourself or a fellow resident to volunteer with a festival committee. Self-nominations require an email — that's how we'll notify you once the committee approves it.</p>
+          <div id="nomAlert" class="alert alert-error" hidden></div>
+          <div id="nomSuccess" class="alert alert-success" hidden></div>
+          <form id="nominationForm">
+            <div class="field">
+              <label for="nomCommitteeSelect">Committee</label>
+              <select id="nomCommitteeSelect" required>
+                <option value="">Loading committees…</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Nomination type</label>
+              <div class="radio-group">
+                <label><input type="radio" name="nomType" value="self" checked> Nominate myself</label>
+                <label><input type="radio" name="nomType" value="other"> Nominate someone else</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="nomineeName">Nominee name</label>
+              <input type="text" id="nomineeName" required>
+            </div>
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="nomineePhone">Nominee phone</label>
+                <input type="tel" id="nomineePhone">
+              </div>
+              <div class="field">
+                <label for="nomineeHouse">House number</label>
+                <input type="text" id="nomineeHouse" placeholder="e.g. Street 4, House 12">
+              </div>
+            </div>
+            <div class="field">
+              <label for="nomineeEmail">Nominee email</label>
+              <input type="email" id="nomineeEmail">
+              <div class="field-hint" id="nomineeEmailHint">Required — we'll email you here once the committee approves your nomination.</div>
+            </div>
+            <div id="nominatedByFields" style="display:none;">
+              <div class="grid grid-2">
+                <div class="field">
+                  <label for="nominatedByName">Your name (nominated by)</label>
+                  <input type="text" id="nominatedByName">
+                </div>
+                <div class="field">
+                  <label for="nominatedByPhone">Your phone</label>
+                  <input type="tel" id="nominatedByPhone">
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label for="nomMessage">Message (optional)</label>
+              <textarea id="nomMessage" placeholder="Why would you like to volunteer / anything the committee should know?"></textarea>
+            </div>
+            <button class="btn btn-accent btn-block" type="submit" id="nomBtn">Submit nomination</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===================== Anna Prasadam Booking ===================== -->
+      <div id="formsPrasadamPanel" style="display:none;">
+        <div class="card">
+          <h3 style="margin-bottom:4px;">Book an Anna Prasadam Slot</h3>
+          <p class="text-muted">Reserve a day to sponsor or help serve Anna Prasadam during the festival. The committee will confirm your slot by email or phone.</p>
+          <div id="prasadamAlert" class="alert alert-error" hidden></div>
+          <div id="prasadamSuccess" class="alert alert-success" hidden></div>
+          <form id="prasadamForm">
+            <div class="field">
+              <label for="prasadamCommitteeSelect">Committee</label>
+              <select id="prasadamCommitteeSelect" required>
+                <option value="">Loading committees…</option>
+              </select>
+            </div>
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="prasadamName">Your name</label>
+                <input type="text" id="prasadamName" required>
+              </div>
+              <div class="field">
+                <label for="prasadamPhone">Phone</label>
+                <input type="tel" id="prasadamPhone" required>
+              </div>
+            </div>
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="prasadamEmail">Email (optional)</label>
+                <input type="email" id="prasadamEmail">
+              </div>
+              <div class="field">
+                <label for="prasadamDate">Preferred date</label>
+                <input type="date" id="prasadamDate" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="prasadamCount">Approx. number of people you'll serve (optional)</label>
+              <input type="number" id="prasadamCount" min="1">
+            </div>
+            <div class="field">
+              <label for="prasadamNotes">Notes (optional)</label>
+              <textarea id="prasadamNotes" placeholder="Any dietary notes, timing preference, or anything the committee should know."></textarea>
+            </div>
+            <button class="btn btn-accent btn-block" type="submit" id="prasadamBtn">Request slot</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===================== Check Status ===================== -->
+      <div id="formsStatusPanel" style="display:none;">
+        <div class="card">
+          <h3 style="margin-bottom:4px;">Check Status</h3>
+          <p class="text-muted">Enter the phone number or email you used when submitting a nomination or Anna Prasadam booking to see its status.</p>
+          <div id="statusAlert" class="alert alert-error" hidden></div>
+          <form id="statusForm">
+            <div class="field">
+              <label for="statusQuery">Phone number or email</label>
+              <input type="text" id="statusQuery" placeholder="e.g. 9876543210 or you@example.com" required>
+            </div>
+            <button class="btn btn-primary btn-block" type="submit">Check status</button>
+          </form>
+        </div>
+        <div id="statusResults" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "";</script>
+<script src="js/supabase-client.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/committee-page.js"></script>
+<script src="js/forms-page.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  initFormsPage();
+});
+</script>
+</body>
+</html>

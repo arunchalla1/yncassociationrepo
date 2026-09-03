@@ -5,6 +5,13 @@ REM  Run this from inside the site folder (double-click it, or
 REM  open a terminal here and run:  deploy-cloudflare.bat)
 REM ============================================================
 
+REM Force the working directory to this script's own folder. Without this,
+REM launching the script in certain ways (e.g. "Run as administrator") can
+REM start it in C:\Windows\System32 instead — and the deploy step below
+REM uploads "." (the current directory), which would then try to upload
+REM System32 itself, including huge files like MRT.exe, and fail.
+cd /d "%~dp0"
+
 where node >nul 2>nul
 if errorlevel 1 (
   echo Node.js is not installed or not on PATH.
@@ -20,9 +27,10 @@ echo.
 call npx --yes wrangler login
 
 echo.
-echo Step 2 of 2: Deploying this folder to Cloudflare Pages...
+echo Step 2 of 2: Deploying this folder to Cloudflare Pages (production: yncprod)...
+echo   Folder being deployed: %CD%
 echo.
-call npx --yes wrangler pages deploy . --project-name=ync-association-portal
+call npx --yes wrangler pages deploy . --project-name=ync-association-portal --branch=yncprod
 
 echo.
 echo Done. Your live URL is printed above (also viewable at
