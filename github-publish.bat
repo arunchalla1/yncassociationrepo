@@ -9,6 +9,16 @@ REM  open a terminal here and run:  github-publish.bat)
 REM  Requires Git: https://git-scm.com
 REM ============================================================
 
+REM Re-launch this script inside a window that stays open no matter what
+REM happens next (cmd /k never auto-closes, even if a command below errors
+REM in a way "pause" doesn't catch). This guarantees you always get to read
+REM the output instead of the window flashing and disappearing.
+if not defined YNC_PUBLISH_PERSIST (
+  set YNC_PUBLISH_PERSIST=1
+  cmd /k call "%~f0"
+  exit /b
+)
+
 REM Force the working directory to this script's own folder — without this,
 REM some launch methods (e.g. "Run as administrator") can start the script
 REM in C:\Windows\System32 instead, which would then commit/push the wrong
@@ -21,8 +31,7 @@ where git >nul 2>nul
 if errorlevel 1 (
   echo Git is not installed or not on PATH.
   echo Install it from https://git-scm.com then run this script again.
-  pause
-  exit /b 1
+  goto :end
 )
 
 if not exist ".git" (
@@ -30,12 +39,8 @@ if not exist ".git" (
   git init
 )
 
-REM Make sure the local branch is named "yncprod" to match the GitHub repo.
-for /f "tokens=*" %%b in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set CURBRANCH=%%b
-if /i not "%CURBRANCH%"=="yncprod" (
-  echo Renaming local branch to yncprod...
-  git branch -M yncprod
-)
+echo Ensuring the local branch is named yncprod, to match the GitHub repo...
+git branch -M yncprod >nul 2>nul
 
 echo Staging files...
 git add .
@@ -69,26 +74,27 @@ if errorlevel 1 (
   echo ============================================================
   echo Push was rejected. This almost always means the GitHub repo
   echo already has commits that don't exist in this local folder
-  echo (for example, it was created with a README or license file).
+  echo (for example, it was created with a README or license file^).
   echo.
-  echo Option 1 — if the GitHub repo is empty/disposable and you want
+  echo Option 1 - if the GitHub repo is empty/disposable and you want
   echo this folder's content to fully replace whatever is there:
   echo     git push -u origin yncprod --force
-  echo   (Only do this if you're sure there's nothing on the GitHub
-  echo    side you need to keep.)
+  echo   ^(Only do this if you're sure there's nothing on the GitHub
+  echo    side you need to keep.^)
   echo.
-  echo Option 2 — merge the two histories instead:
+  echo Option 2 - merge the two histories instead:
   echo     git pull origin yncprod --allow-unrelated-histories
   echo   then resolve any conflicts Git reports, commit, and run
   echo   this script again.
   echo ============================================================
   echo.
-  pause
-  exit /b 1
+  goto :end
 )
 
 echo.
 echo Done. Your code is live at:
 echo   https://github.com/arunchalla1/yncassociationrepo/tree/yncprod
+
+:end
 echo.
 pause

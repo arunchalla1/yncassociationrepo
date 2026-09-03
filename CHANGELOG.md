@@ -2,6 +2,19 @@
 
 All notable changes to the YNC Association Portal are documented in this file.
 
+## [2.5.3] — 2026-09-03
+
+### Fixed
+- **`github-publish.bat` could silently close after a couple of seconds with no output**
+  — two batch-scripting bugs: a branch-detection line used caret-escaping (`2^>nul`) that's
+  only valid *inside* a parenthesized block, and error messages later in the script
+  contained literal, unescaped parentheses inside an `if (...)` block, which can break
+  cmd.exe's block parsing. Removed the fragile branch-detection entirely (now just always
+  runs `git branch -M yncprod`, which is a harmless no-op if it's already named that), and
+  escaped every literal parenthesis in printed text. Both `.bat` files now also re-launch
+  themselves inside a window that never auto-closes (`cmd /k`), so a script window flashing
+  and disappearing before you can read it shouldn't be possible again regardless of cause.
+
 ## [2.5.2] — 2026-09-03
 
 ### Changed

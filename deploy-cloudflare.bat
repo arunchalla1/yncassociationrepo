@@ -5,6 +5,15 @@ REM  Run this from inside the site folder (double-click it, or
 REM  open a terminal here and run:  deploy-cloudflare.bat)
 REM ============================================================
 
+REM Re-launch inside a window that stays open no matter what happens next
+REM (cmd /k never auto-closes). Guarantees the window can't flash and vanish
+REM before you get to read any output, whatever goes wrong below.
+if not defined YNC_DEPLOY_PERSIST (
+  set YNC_DEPLOY_PERSIST=1
+  cmd /k call "%~f0"
+  exit /b
+)
+
 REM Force the working directory to this script's own folder. Without this,
 REM launching the script in certain ways (e.g. "Run as administrator") can
 REM start it in C:\Windows\System32 instead — and the deploy step below
