@@ -57,7 +57,7 @@ assets/ync-logo.png    Official emblem (background removed)
 CHANGELOG.md          Version history
 LICENSE                 Usage terms
 deploy-cloudflare.bat    One-click Cloudflare Pages deploy (Windows)
-github-publish.bat        One-click GitHub repo publish (Windows)
+github-publish.bat        Pushes to github.com/arunchalla1/yncassociationrepo (yncprod branch)
 ```
 
 ## Staff Access & Roles
@@ -129,10 +129,11 @@ project is already live and independent of where the frontend is hosted).
 
 - `deploy-cloudflare.bat` — signs you in to Cloudflare (first run only) and deploys this
   folder to Cloudflare Pages via `wrangler`. Node.js must be installed.
-- `github-publish.bat` — initializes git, commits everything, and (if the
-  [GitHub CLI](https://cli.github.com) is installed) creates a private "YNC Portal"
-  repo on your GitHub account and pushes to it in one step. Without the GitHub CLI it
-  still does the local git setup and prints the two commands to finish manually.
+- `github-publish.bat` — commits everything and pushes to the existing GitHub repo
+  [arunchalla1/yncassociationrepo](https://github.com/arunchalla1/yncassociationrepo),
+  branch `yncprod`. Git must be installed; if this is the first push, a browser window
+  opens for you to sign in to GitHub (handled automatically by Git's credential manager
+  — no separate login step).
 
 **After any content/code change**, re-run `deploy-cloudflare.bat` to push the update live.
 

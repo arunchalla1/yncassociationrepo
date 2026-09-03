@@ -2,6 +2,20 @@
 
 All notable changes to the YNC Association Portal are documented in this file.
 
+## [2.5.2] — 2026-09-03
+
+### Changed
+- **`github-publish.bat` now targets the actual GitHub repo** created for this project —
+  [arunchalla1/yncassociationrepo](https://github.com/arunchalla1/yncassociationrepo),
+  branch `yncprod` — instead of trying to create a new "YNC Portal" repo via the GitHub
+  CLI. It sets/updates the `origin` remote, renames the local branch to `yncprod` to match,
+  and pushes with plain `git push` (Git's own credential manager handles GitHub sign-in via
+  a browser window — no `gh` CLI required). If the push is rejected because the GitHub repo
+  already has commits this folder doesn't (e.g. an auto-created README), it prints the two
+  safe options (force-push over it, or merge with `--allow-unrelated-histories`) instead of
+  guessing on your behalf. Also applied the same working-directory fix as
+  `deploy-cloudflare.bat` and added `.wrangler/` to `.gitignore`.
+
 ## [2.5.1] — 2026-09-03
 
 ### Fixed
