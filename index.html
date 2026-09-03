@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yadaiah Nagar Colony Welfare Association</title>
+<meta name="description" content="Official portal of the Yadaiah Nagar Colony Welfare Association — notices, association &amp; festival committees, complaints, and resident services.">
+<link rel="icon" href="assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="home">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow">Official Community Portal</span>
+        <h1>One Colony, One Family.</h1>
+        <p class="lead">Everything YNC Colony residents need in one place — notices &amp; announcements, the Association and Festival Committee teams, resident complaints, and volunteer sign-ups for our festivals.</p>
+        <div class="hero-actions">
+          <a href="notices.html" class="btn btn-primary">View Notice Board</a>
+          <a href="complaints.html" class="btn btn-outline">Raise a Complaint</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="flex items-center gap-12" style="margin-bottom:14px;">
+          <img src="assets/ync-logo.png" alt="YNC Association emblem" style="width:64px;height:64px;">
+          <div>
+            <h3 style="margin:0;">Yadaiah Nagar Colony</h3>
+            <p class="text-muted" style="margin:0;">Welfare Association</p>
+          </div>
+        </div>
+        <div class="grid grid-2" id="homeStats">
+          <div class="stat-card" style="padding:14px 8px;"><div class="num" id="statResidents">–</div><div class="label">Residents Listed</div></div>
+          <div class="stat-card" style="padding:14px 8px;"><div class="num" id="statNotices">–</div><div class="label">Active Notices</div></div>
+          <div class="stat-card" style="padding:14px 8px;"><div class="num" id="statCommittees">3</div><div class="label">Committees</div></div>
+          <div class="stat-card" style="padding:14px 8px;"><div class="num" id="statOpenComplaints">–</div><div class="label">Open Complaints</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container">
+      <div class="section-head">
+        <div><h2>Quick access</h2><p>Everything most residents need, one click away.</p></div>
+      </div>
+      <div class="grid grid-4">
+        <a href="notices.html" class="card card-hover">
+          <div style="font-size:1.6rem;">📣</div>
+          <h3>Notice Board</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Announcements, maintenance notices &amp; updates from the association.</p>
+        </a>
+        <a href="team.html" class="card card-hover">
+          <div style="font-size:1.6rem;">🧑‍🤝‍🧑</div>
+          <h3>Association Team</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Meet this year's office bearers &amp; past committees.</p>
+        </a>
+        <a href="festivals/index.html" class="card card-hover">
+          <div style="font-size:1.6rem;">🎉</div>
+          <h3>Festival Committees</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Ganesh &amp; Durga committees, photo galleries, and volunteer nominations.</p>
+        </a>
+        <a href="complaints.html" class="card card-hover">
+          <div style="font-size:1.6rem;">📝</div>
+          <h3>Raise a Complaint</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Report a personal or public issue — the team follows up by phone.</p>
+        </a>
+        <a href="colony-info/index.html" class="card card-hover">
+          <div style="font-size:1.6rem;">🏘️</div>
+          <h3>Colony Info</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Owner &amp; tenant listings for Street 3, 4 &amp; 5.</p>
+        </a>
+        <a href="finance/index.html" class="card card-hover">
+          <div style="font-size:1.6rem;">💰</div>
+          <h3>Finances</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Association income, expenses &amp; balance — fully public.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tight" style="background:var(--surface); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+    <div class="container">
+      <div class="section-head">
+        <div><h2>Latest from the Notice Board</h2><p>Pinned &amp; recent notices and announcements.</p></div>
+        <a href="notices.html" class="btn btn-ghost btn-sm">View all →</a>
+      </div>
+      <div class="grid grid-3" id="homeNotices">
+        <div class="card skeleton" style="height:140px;"></div>
+        <div class="card skeleton" style="height:140px;"></div>
+        <div class="card skeleton" style="height:140px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div><h2>Festival Committees — 2026</h2><p>Volunteer nominations are open. Join a committee and be part of the celebrations.</p></div>
+      </div>
+      <div class="grid grid-3">
+        <div class="card card-hover">
+          <div style="font-size:1.8rem;">🐘</div>
+          <h3>Ganesh Committee</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Organizes Ganesh Chaturthi celebrations for the colony.</p>
+          <a href="festivals/ganesh.html" class="btn btn-outline btn-sm">View &amp; Nominate</a>
+        </div>
+        <div class="card card-hover">
+          <div style="font-size:1.8rem;">🙏</div>
+          <h3>Durga Matha Committee</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Organizes Durga Puja / Navratri celebrations for the colony.</p>
+          <a href="festivals/durga.html" class="btn btn-outline btn-sm">View &amp; Nominate</a>
+        </div>
+        <div class="card card-hover">
+          <div style="font-size:1.8rem;">🎉</div>
+          <h3>Other Occasions</h3>
+          <p class="text-muted" style="font-size:0.9rem;">Sankranti, Independence Day, New Year &amp; more — with photo galleries.</p>
+          <a href="festivals/other.html" class="btn btn-outline btn-sm">Explore</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "";</script>
+<script src="js/supabase-client.js"></script>
+<script src="js/nav.js"></script>
+<script>
+async function loadHomeData() {
+  const [{ data: residentCount }, { data: notices }, { count: openCount }] = await Promise.all([
+    supabaseClient.rpc("public_resident_count").catch(() => ({ data: null })),
+    supabaseClient.from("notices").select("id,type,title,body,category,is_pinned,published_at")
+      .lte("published_at", new Date().toISOString())
+      .order("is_pinned", { ascending: false })
+      .order("published_at", { ascending: false })
+      .limit(3),
+    supabaseClient.from("complaints").select("*", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
+  ]);
+
+  document.getElementById("statResidents").textContent = residentCount != null ? residentCount : "—";
+  document.getElementById("statOpenComplaints").textContent = openCount != null ? openCount : "—";
+
+  const { count: noticeCount } = await supabaseClient.from("notices").select("*", { count: "exact", head: true })
+    .lte("published_at", new Date().toISOString());
+  document.getElementById("statNotices").textContent = noticeCount != null ? noticeCount : "—";
+
+  const wrap = document.getElementById("homeNotices");
+  if (!notices || notices.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">📭</div>No notices yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = notices.map(n => `
+    <div class="card card-hover">
+      <div class="flex items-center gap-8" style="margin-bottom:8px;">
+        <span class="badge badge-cat">${yncEscapeHtml(n.category)}</span>
+        ${n.is_pinned ? '<span class="badge" style="background:var(--accent-tint);color:var(--accent-dark);">📌 Pinned</span>' : ""}
+      </div>
+      <h3 style="margin-bottom:4px;">${yncEscapeHtml(n.title)}</h3>
+      <p class="text-muted" style="font-size:0.88rem;">${yncEscapeHtml(n.body).slice(0, 110)}${n.body.length > 110 ? "…" : ""}</p>
+      <div class="text-muted" style="font-size:0.78rem;">${yncFormatDate(n.published_at)}</div>
+    </div>
+  `).join("");
+}
+loadHomeData();
+</script>
+</body>
+</html>

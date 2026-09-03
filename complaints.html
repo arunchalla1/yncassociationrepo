@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complaints — YNC Association</title>
+<link rel="icon" href="assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="complaints">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero" style="padding:44px 0 30px;">
+    <div class="container">
+      <span class="eyebrow">We're listening</span>
+      <h1>Raise a Complaint</h1>
+      <p class="lead">Report an issue below and the Association team will follow up with you directly. No account needed.</p>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container grid grid-2" style="align-items:flex-start;">
+      <div class="card">
+        <h3>New complaint</h3>
+        <div id="complaintAlert" class="alert alert-error" hidden></div>
+        <div id="complaintSuccess" class="alert alert-success" hidden></div>
+        <form id="complaintForm">
+          <div class="field">
+            <label for="cName">Your name</label>
+            <input type="text" id="cName" required>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="cHouse">House / street address</label>
+              <input type="text" id="cHouse" placeholder="e.g. Street 4, House 12">
+            </div>
+            <div class="field">
+              <label for="cPhone">Phone</label>
+              <input type="tel" id="cPhone" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="cCategory">Category</label>
+            <select id="cCategory">
+              <option value="Public">Public (common area / colony-wide)</option>
+              <option value="Personal">Personal</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Security">Security</option>
+              <option value="Noise">Noise</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="cSubject">Subject</label>
+            <input type="text" id="cSubject" required maxlength="120">
+          </div>
+          <div class="field">
+            <label for="cDescription">Description</label>
+            <textarea id="cDescription" required></textarea>
+          </div>
+          <div class="field">
+            <label for="cPhoto">Photo (optional)</label>
+            <input type="file" id="cPhoto" accept="image/*">
+          </div>
+          <button class="btn btn-primary btn-block" type="submit" id="complaintBtn">Submit complaint</button>
+          <p class="field-hint text-center" style="margin-top:10px;">We'll use your phone number to follow up — it's only ever visible to Association staff.</p>
+        </form>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h3>What happens next?</h3>
+          <ul style="padding-left:20px; color:var(--text-muted); font-size:0.92rem;">
+            <li>Your complaint reaches the Association team immediately.</li>
+            <li>A staff member reviews it and may call you for more details.</li>
+            <li>You'll be contacted by phone once it's resolved.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Prefer to reach us directly?</h3>
+          <p class="text-muted" style="font-size:0.92rem;">Email <a href="mailto:yncassociationteam@gmail.com">yncassociationteam@gmail.com</a> or speak to any Association Team member listed on the <a href="team.html">Association Team</a> page.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "";</script>
+<script src="js/supabase-client.js"></script>
+<script src="js/nav.js"></script>
+<script>
+document.getElementById("complaintForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const alertBox = document.getElementById("complaintAlert");
+  const successBox = document.getElementById("complaintSuccess");
+  const btn = document.getElementById("complaintBtn");
+  alertBox.hidden = true; successBox.hidden = true;
+  btn.disabled = true; btn.textContent = "Submitting…";
+
+  try {
+    let photoUrl = null;
+    const fileInput = document.getElementById("cPhoto");
+    if (fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      const path = `complaints/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: upErr } = await supabaseClient.storage.from("public-media").upload(path, file);
+      if (upErr) throw upErr;
+      const { data: pub } = supabaseClient.storage.from("public-media").getPublicUrl(path);
+      photoUrl = pub.publicUrl;
+    }
+
+    const payload = {
+      raised_by_name: document.getElementById("cName").value.trim(),
+      raised_by_house: document.getElementById("cHouse").value.trim(),
+      raised_by_phone: document.getElementById("cPhone").value.trim(),
+      category: document.getElementById("cCategory").value,
+      subject: document.getElementById("cSubject").value.trim(),
+      description: document.getElementById("cDescription").value.trim(),
+      photo_url: photoUrl,
+    };
+    const { error } = await supabaseClient.from("complaints").insert(payload);
+    if (error) throw error;
+
+    successBox.textContent = "Complaint submitted. The Association team will review it and call you shortly.";
+    successBox.hidden = false;
+    document.getElementById("complaintForm").reset();
+  } catch (err) {
+    alertBox.textContent = err.message || "Could not submit complaint. Please try again.";
+    alertBox.hidden = false;
+  } finally {
+    btn.disabled = false; btn.textContent = "Submit complaint";
+  }
+});
+</script>
+</body>
+</html>

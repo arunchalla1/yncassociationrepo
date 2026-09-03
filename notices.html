@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notice Board — YNC Association</title>
+<link rel="icon" href="assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="notices">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero" style="padding:44px 0 30px;">
+    <div class="container">
+      <span class="eyebrow">Stay Informed</span>
+      <h1>Notice Board &amp; Announcements</h1>
+      <p class="lead">Official notices, maintenance updates, and announcements from the Association.</p>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container">
+      <div class="pill-tabs" id="filterTabs">
+        <button class="pill-tab active" data-filter="all">All</button>
+        <button class="pill-tab" data-filter="announcement">Announcements</button>
+        <button class="pill-tab" data-filter="notice">Notices</button>
+      </div>
+      <div id="noticeList" class="grid grid-3">
+        <div class="card skeleton" style="height:160px;"></div>
+        <div class="card skeleton" style="height:160px;"></div>
+        <div class="card skeleton" style="height:160px;"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "";</script>
+<script src="js/supabase-client.js"></script>
+<script src="js/nav.js"></script>
+<script>
+let allNotices = [];
+
+function renderNotices(filter) {
+  const wrap = document.getElementById("noticeList");
+  const filtered = filter === "all" ? allNotices : allNotices.filter(n => n.type === filter);
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">📭</div>Nothing here yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = filtered.map(n => `
+    <div class="card card-hover">
+      <div class="flex items-center gap-8" style="margin-bottom:10px; flex-wrap:wrap;">
+        <span class="badge badge-cat">${yncEscapeHtml(n.category)}</span>
+        <span class="badge" style="background:${n.type === "announcement" ? "var(--teal-tint)" : "#eef1f4"}; color:${n.type === "announcement" ? "var(--teal)" : "var(--text-muted)"};">${n.type}</span>
+        ${n.is_pinned ? '<span class="badge" style="background:var(--accent-tint);color:var(--accent-dark);">📌 Pinned</span>' : ""}
+      </div>
+      <h3>${yncEscapeHtml(n.title)}</h3>
+      <p class="text-muted" style="font-size:0.92rem; white-space:pre-line;">${yncEscapeHtml(n.body)}</p>
+      ${(n.image_urls && n.image_urls.length) ? `
+        <div class="flex gap-8" style="flex-wrap:wrap; margin:8px 0;">
+          ${n.image_urls.map(u => `<a href="${yncEscapeHtml(u)}" target="_blank" rel="noopener"><img src="${yncEscapeHtml(u)}" alt="" style="width:78px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"></a>`).join("")}
+        </div>` : (n.attachment_url ? `<a href="${yncEscapeHtml(n.attachment_url)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="margin-top:6px;">📎 View attachment</a>` : "")}
+      <div class="text-muted" style="font-size:0.78rem; margin-top:10px;">Published ${yncFormatDate(n.published_at)}</div>
+    </div>
+  `).join("");
+}
+
+async function loadNotices() {
+  const { data, error } = await supabaseClient
+    .from("notices")
+    .select("*")
+    .lte("published_at", new Date().toISOString())
+    .order("is_pinned", { ascending: false })
+    .order("published_at", { ascending: false });
+
+  if (error) {
+    document.getElementById("noticeList").innerHTML = `<div class="alert alert-error" style="grid-column:1/-1;">Could not load notices right now.</div>`;
+    return;
+  }
+  allNotices = data || [];
+  renderNotices("all");
+}
+
+document.querySelectorAll("#filterTabs .pill-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#filterTabs .pill-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderNotices(btn.dataset.filter);
+  });
+});
+
+loadNotices();
+</script>
+</body>
+</html>

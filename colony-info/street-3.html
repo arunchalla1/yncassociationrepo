@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Street 3 — Colony Info — YNC Association</title>
+<link rel="icon" href="../assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-page="colony-info">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero" style="padding:44px 0 30px;">
+    <div class="container">
+      <span class="eyebrow"><a href="index.html" style="color:inherit;">Colony Info</a></span>
+      <h1>Street 3</h1>
+      <p class="lead">Owner &amp; tenant listing for Street 3.</p>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container">
+      <div class="pill-tabs" id="streetTabs">
+        <button class="pill-tab active" data-t="owner">Owners</button>
+        <button class="pill-tab" data-t="tenant">Tenants</button>
+      </div>
+      <div id="streetContent"><div class="card skeleton" style="height:160px;"></div></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "../";</script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/street-page.js"></script>
+<script>initStreetPage({ street: "street_3" });</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finances — YNC Association</title>
+<link rel="icon" href="../assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-page="finance">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero" style="padding:44px 0 30px;">
+    <div class="container">
+      <span class="eyebrow">Transparency</span>
+      <h1>Association Finances</h1>
+      <p class="lead">A running record of the Association's income and expenses, shared openly with every resident.</p>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container">
+      <div class="grid grid-3" id="financeSummary">
+        <div class="card skeleton" style="height:90px;"></div>
+        <div class="card skeleton" style="height:90px;"></div>
+        <div class="card skeleton" style="height:90px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container grid grid-2" style="align-items:flex-start;">
+      <div>
+        <h2 style="margin-bottom:16px;">Expenses by Category</h2>
+        <div class="card" id="financeCategories"><div class="skeleton" style="height:120px;"></div></div>
+      </div>
+      <div>
+        <h2 style="margin-bottom:16px;">All Transactions</h2>
+        <div id="financeTable"><div class="card skeleton" style="height:120px;"></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "../";</script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/finance-page.js"></script>
+<script>initFinancePage({ scope: "association" });</script>
+</body>
+</html>

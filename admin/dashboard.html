@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Dashboard — YNC Association</title>
+<link rel="icon" href="../assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-page="dashboard">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <div id="gate" class="container" style="max-width:440px; padding-top:60px;">
+    <div class="card gate-card">
+      <div class="icon">🔒</div>
+      <h3>Staff sign-in required</h3>
+      <p class="text-muted">This dashboard is for Association &amp; Festival Committee staff.</p>
+      <a href="../login.html" class="btn btn-primary">Sign in</a>
+    </div>
+  </div>
+
+  <div id="dash" class="container" style="display:none; padding-top:28px;">
+    <div class="flex items-center justify-between gap-12" style="flex-wrap:wrap; margin-bottom:18px;">
+      <div>
+        <h1 style="margin-bottom:2px;">Staff Dashboard</h1>
+        <p class="text-muted" id="whoAmI" style="margin:0;"></p>
+      </div>
+    </div>
+
+    <div class="pill-tabs" id="tabBar">
+      <button class="pill-tab active" data-tab="overview">Overview</button>
+      <button class="pill-tab" data-tab="notices">Notices</button>
+      <button class="pill-tab" data-tab="complaints">Complaints</button>
+      <button class="pill-tab" data-tab="nominations">Nominations</button>
+      <button class="pill-tab" data-tab="team">Association Team</button>
+      <button class="pill-tab" data-tab="festival-team">Festival Committees</button>
+      <button class="pill-tab" data-tab="photos">Photo Galleries</button>
+      <button class="pill-tab" data-tab="residents">Residents</button>
+      <button class="pill-tab" data-tab="finances">Finances</button>
+    </div>
+
+    <div id="tabContent"></div>
+  </div>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "../";</script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/nav.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

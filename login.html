@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — YNC Association</title>
+<link rel="icon" href="assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="login">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="section">
+    <div class="container" style="max-width:440px;">
+      <div class="card">
+        <div class="text-center" style="margin-bottom:20px;">
+          <img src="assets/ync-logo.png" alt="YNC logo" style="width:56px;height:56px;margin:0 auto 10px;">
+          <h2 style="margin-bottom:2px;">Staff sign in</h2>
+          <p class="text-muted" style="font-size:0.9rem;">For Association &amp; Festival Committee members.</p>
+        </div>
+
+        <div id="loginAlert" class="alert alert-error" hidden></div>
+
+        <form id="loginForm">
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" required autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" required autocomplete="current-password">
+          </div>
+          <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Sign in</button>
+        </form>
+
+        <p class="text-center text-muted" style="margin-top:16px; font-size:0.88rem;">
+          New staff member? <a href="signup.html">Create an account</a>
+        </p>
+
+        <hr class="divider">
+        <details>
+          <summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted);">Demo credentials (for testing)</summary>
+          <p class="text-muted" style="font-size:0.82rem; margin-top:8px;">
+            Association admin: <code>admin@yncassociation.demo</code> / <code>YncDemo@2026</code>
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "";</script>
+<script src="js/supabase-client.js"></script>
+<script src="js/nav.js"></script>
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const alertBox = document.getElementById("loginAlert");
+  const btn = document.getElementById("loginBtn");
+  alertBox.hidden = true;
+  btn.disabled = true; btn.textContent = "Signing in…";
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  btn.disabled = false; btn.textContent = "Sign in";
+  if (error) {
+    alertBox.textContent = error.message || "Could not sign in. Check your email and password.";
+    alertBox.hidden = false;
+    return;
+  }
+
+  const { data: profile } = await supabaseClient.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+  if (profile && (profile.role === "association" || profile.role === "admin")) {
+    window.location.href = "admin/dashboard.html";
+  } else {
+    window.location.href = "index.html";
+  }
+});
+</script>
+</body>
+</html>

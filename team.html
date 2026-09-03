@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Association Team — YNC Association</title>
+<link rel="icon" href="assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="team">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero" style="padding:44px 0 30px;">
+    <div class="container">
+      <span class="eyebrow">Who Runs YNC Association</span>
+      <h1>Association Team</h1>
+      <p class="lead">Meet the office bearers elected to serve the colony each year.</p>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container">
+      <div class="flex items-center gap-12" style="margin-bottom:24px;">
+        <label for="yearSelect" style="margin:0;">Year:</label>
+        <select id="yearSelect" style="width:auto; min-width:120px;"></select>
+      </div>
+      <div id="teamGrid" class="grid grid-4">
+        <div class="card skeleton" style="height:180px;"></div>
+        <div class="card skeleton" style="height:180px;"></div>
+        <div class="card skeleton" style="height:180px;"></div>
+        <div class="card skeleton" style="height:180px;"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "";</script>
+<script src="js/supabase-client.js"></script>
+<script src="js/nav.js"></script>
+<script>
+function initials(name) {
+  return (name || "?").split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+}
+
+function renderTeam(members) {
+  const grid = document.getElementById("teamGrid");
+  if (!members || members.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🧑‍🤝‍🧑</div>No team members recorded for this year yet.</div>`;
+    return;
+  }
+  grid.innerHTML = members.map(m => `
+    <div class="card card-hover text-center">
+      ${m.photo_url
+        ? `<img src="${yncEscapeHtml(m.photo_url)}" alt="${yncEscapeHtml(m.name)}" style="width:76px;height:76px;border-radius:50%;object-fit:cover;margin:0 auto 12px;">`
+        : `<div class="avatar-circle" style="width:76px;height:76px;font-size:1.4rem;margin:0 auto 12px;">${initials(m.name)}</div>`}
+      <h3 style="margin-bottom:2px;">${yncEscapeHtml(m.name)}</h3>
+      <p style="color:var(--accent-dark); font-weight:600; font-size:0.88rem; margin-bottom:8px;">${yncEscapeHtml(m.position)}</p>
+      ${m.phone ? `<p class="text-muted" style="font-size:0.85rem; margin:0;">📞 ${yncEscapeHtml(m.phone)}</p>` : ""}
+      ${m.email ? `<p class="text-muted" style="font-size:0.85rem; margin:0;">✉️ ${yncEscapeHtml(m.email)}</p>` : ""}
+    </div>
+  `).join("");
+}
+
+async function loadYear(year) {
+  const { data } = await supabaseClient
+    .from("association_team")
+    .select("*")
+    .eq("year", year)
+    .order("display_order", { ascending: true });
+  renderTeam(data);
+}
+
+async function init() {
+  const { data: rows } = await supabaseClient
+    .from("association_team")
+    .select("year")
+    .order("year", { ascending: false });
+
+  const years = [...new Set((rows || []).map(r => r.year))];
+  if (years.length === 0) years.push(YNC_CONFIG.currentYear);
+
+  const sel = document.getElementById("yearSelect");
+  sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+  sel.addEventListener("change", () => loadYear(Number(sel.value)));
+  loadYear(Number(sel.value));
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Durga Matha Committee — YNC Association</title>
+<link rel="icon" href="../assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-page="festivals">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="hero" style="padding:40px 0 26px;">
+    <div class="container">
+      <p class="text-muted" style="margin-bottom:6px;"><a href="index.html">Festival Committees</a> / Durga Matha Committee</p>
+      <span class="eyebrow">🙏 Durga Puja &amp; Navratri</span>
+      <h1>Durga Matha Committee</h1>
+      <p class="lead">Plans and runs Durga Puja / Navratri celebrations for YNC Colony — pandal setup, daily pooja, cultural programs, and visarjan.</p>
+    </div>
+  </section>
+
+  <section class="section tight">
+    <div class="container">
+      <div class="flex items-center justify-between gap-12" style="flex-wrap:wrap; margin-bottom:20px;">
+        <h2 style="margin:0;">Committee Team</h2>
+        <div class="flex items-center gap-8" id="committeeYearWrap">
+          <label for="committeeYearSelect" style="margin:0;">Year:</label>
+          <select id="committeeYearSelect" style="width:auto; min-width:110px;"></select>
+        </div>
+      </div>
+      <div id="committeeTeamGrid" class="grid grid-4">
+        <div class="card skeleton" style="height:160px;"></div>
+        <div class="card skeleton" style="height:160px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tight" style="background:var(--surface); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+    <div class="container">
+      <h2>Photo Gallery</h2>
+      <div id="committeeGallery" class="gallery-grid">
+        <div class="skeleton" style="height:150px;"></div>
+        <div class="skeleton" style="height:150px;"></div>
+        <div class="skeleton" style="height:150px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container" style="max-width:640px;">
+      <div class="card">
+        <h2 style="margin-bottom:4px;">Nominate a Volunteer</h2>
+        <p class="text-muted">Nominate yourself or a fellow resident to volunteer with the Durga Matha Committee.</p>
+        <div id="nomAlert" class="alert alert-error" hidden></div>
+        <div id="nomSuccess" class="alert alert-success" hidden></div>
+        <form id="nominationForm">
+          <div class="field">
+            <label>Nomination type</label>
+            <div class="radio-group">
+              <label><input type="radio" name="nomType" value="self" checked> Nominate myself</label>
+              <label><input type="radio" name="nomType" value="other"> Nominate someone else</label>
+            </div>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="nomineeName">Nominee name</label>
+              <input type="text" id="nomineeName" required>
+            </div>
+            <div class="field">
+              <label for="nomYear">Year</label>
+              <select id="nomYear"></select>
+            </div>
+          </div>
+          <div class="grid grid-2">
+            <div class="field">
+              <label for="nomineePhone">Nominee phone</label>
+              <input type="tel" id="nomineePhone">
+            </div>
+            <div class="field">
+              <label for="nomineeHouse">House number</label>
+              <input type="text" id="nomineeHouse" placeholder="e.g. A-101">
+            </div>
+          </div>
+          <div class="field">
+            <label for="nomineeEmail">Nominee email</label>
+            <input type="email" id="nomineeEmail">
+          </div>
+          <div id="nominatedByFields" style="display:none;">
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="nominatedByName">Your name (nominated by)</label>
+                <input type="text" id="nominatedByName">
+              </div>
+              <div class="field">
+                <label for="nominatedByPhone">Your phone</label>
+                <input type="tel" id="nominatedByPhone">
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="nomMessage">Message (optional)</label>
+            <textarea id="nomMessage" placeholder="Why would you like to volunteer / anything the committee should know?"></textarea>
+          </div>
+          <button class="btn btn-accent btn-block" type="submit" id="nomBtn">Submit nomination</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "../";</script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/nav.js"></script>
+<script src="../js/committee-page.js"></script>
+<script>initCommitteePage({ slug: "durga" });</script>
+</body>
+</html>

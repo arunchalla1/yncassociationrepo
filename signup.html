@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Staff Account — YNC Association</title>
+<link rel="icon" href="assets/ync-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="signup">
+
+<header class="site-header"><div id="site-header"></div></header>
+
+<main>
+  <section class="section">
+    <div class="container" style="max-width:460px;">
+      <div class="card">
+        <div class="text-center" style="margin-bottom:20px;">
+          <img src="assets/ync-logo.png" alt="YNC logo" style="width:56px;height:56px;margin:0 auto 10px;">
+          <h2 style="margin-bottom:2px;">Create a staff account</h2>
+          <p class="text-muted" style="font-size:0.9rem;">For Association &amp; Festival Committee members only. New accounts start with no dashboard access until an existing admin grants it.</p>
+        </div>
+
+        <div id="signupAlert" class="alert alert-error" hidden></div>
+        <div id="signupSuccess" class="alert alert-success" hidden></div>
+
+        <form id="signupForm">
+          <div class="field">
+            <label for="fullName">Full name</label>
+            <input type="text" id="fullName" required>
+          </div>
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input type="tel" id="phone">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" required autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" minlength="6" required autocomplete="new-password">
+            <div class="field-hint">At least 6 characters.</div>
+          </div>
+          <button class="btn btn-primary btn-block" type="submit" id="signupBtn">Create account</button>
+        </form>
+
+        <p class="text-center text-muted" style="margin-top:16px; font-size:0.88rem;">
+          Already have an account? <a href="login.html">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><div id="site-footer"></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>window.YNC_ROOT = "";</script>
+<script src="js/supabase-client.js"></script>
+<script src="js/nav.js"></script>
+<script>
+document.getElementById("signupForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const alertBox = document.getElementById("signupAlert");
+  const successBox = document.getElementById("signupSuccess");
+  const btn = document.getElementById("signupBtn");
+  alertBox.hidden = true; successBox.hidden = true;
+  btn.disabled = true; btn.textContent = "Creating account…";
+
+  const fullName = document.getElementById("fullName").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  const { data, error } = await supabaseClient.auth.signUp({
+    email, password,
+    options: { data: { full_name: fullName, phone } },
+  });
+
+  btn.disabled = false; btn.textContent = "Create account";
+
+  if (error) {
+    alertBox.textContent = error.message || "Could not create account.";
+    alertBox.hidden = false;
+    return;
+  }
+
+  successBox.textContent = "Account created. Ask an existing admin to grant you dashboard access, then sign in.";
+  successBox.hidden = false;
+  document.getElementById("signupForm").reset();
+});
+</script>
+</body>
+</html>
