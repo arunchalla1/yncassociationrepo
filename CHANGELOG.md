@@ -2,6 +2,25 @@
 
 All notable changes to the YNC Association Portal are documented in this file.
 
+## [2.9.1] — 2026-09-04
+
+### Fixed
+- **Staff Dashboard didn't lock itself back down after sign-out.** It checked
+  who you were exactly once, when the page first loaded, and never again —
+  so if the session ended afterward (signed out from another tab, the
+  session/token expired, or the page was restored from the browser's Back
+  button cache) the dashboard, its tabs, and its Edit/Delete buttons stayed on
+  screen exactly as before, even though the site's own nav bar correctly
+  showed "Sign in". The database itself was never actually exposed — every
+  write is re-checked against the live admin role on the server
+  (`is_association_or_admin()`), so a revoked or demoted account was always
+  blocked there regardless of what the page displayed — but the page
+  misleadingly kept offering controls it shouldn't have. It now re-verifies
+  the session and admin role whenever the tab regains focus, when the
+  underlying auth session changes (including a sign-out from another tab),
+  and after being restored from the browser cache — and immediately clears
+  the screen back to the sign-in gate the moment any of those checks fail.
+
 ## [2.9.0] — 2026-09-04
 
 ### Changed

@@ -32,24 +32,70 @@ function draftEmail(toEmail, subject, body) {
 }
 
 // ---------- Boot ----------
+// Runs once at page load: does the first access check, and — only on success —
+// wires up the tabs and starts watching for the session ending later (see
+// watchForAccessLoss). checkAdminAccess() itself is also called on its own,
+// with no side effects beyond the gate, whenever we just need to re-verify
+// (self-demotion in Staff Access, or a live auth-state change).
+let TABS_WIRED = false;
 async function boot() {
+  const ok = await checkAdminAccess();
+  if (!ok) return;
+
+  const { data: committees } = await supabaseClient.from("festival_committees").select("*");
+  (committees || []).forEach(c => { COMMITTEES[c.slug] = c; });
+
+  if (!TABS_WIRED) { wireTabs(); TABS_WIRED = true; }
+  renderTab("overview");
+  watchForAccessLoss();
+}
+
+// The one place that decides whether this browser tab is allowed to see the
+// dashboard right now. Always re-reads the session and role from Supabase —
+// never trusts ME/MY_ROLE already sitting in memory — and shows the dashboard
+// or the sign-in gate to match. Returns true if the dashboard is (still) showing.
+async function checkAdminAccess() {
   const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) return showGate();
+  if (!session) { lockDashboard(); return false; }
 
   const { data: profile } = await supabaseClient.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
-  if (!profile || profile.role !== "admin") return showGate(true);
+  if (!profile || profile.role !== "admin" || profile.retired) { lockDashboard(true); return false; }
 
   ME = session.user;
   MY_ROLE = profile;
   document.getElementById("gate").style.display = "none";
   document.getElementById("dash").style.display = "block";
   document.getElementById("whoAmI").textContent = `Signed in as ${profile.full_name || ME.email} · role: ${profile.role}`;
+  return true;
+}
 
-  const { data: committees } = await supabaseClient.from("festival_committees").select("*");
-  (committees || []).forEach(c => { COMMITTEES[c.slug] = c; });
+// Watches for the admin session ending *while this tab is already open* —
+// signed out from another tab, session/token expired, access revoked by
+// another admin — and immediately locks the dashboard back down instead of
+// leaving stale admin content (and working Edit/Delete buttons) on screen.
+// Two mechanisms, because neither alone reliably covers every real case:
+//  1. onAuthStateChange fires for sign-outs Supabase's client itself notices
+//     (including, in most browsers, a sign-out from another tab of the same
+//     browser via its storage-event sync).
+//  2. pageshow/visibilitychange catch what that can miss — e.g. coming back to
+//     this exact page via the browser's Back button after signing out, which
+//     can restore it from cache (bfcache) without re-running any auth check.
+function watchForAccessLoss() {
+  supabaseClient.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT" || event === "TOKEN_REFRESH_FAILED") lockDashboard();
+    else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") checkAdminAccess();
+  });
+  window.addEventListener("pageshow", (e) => { if (e.persisted) checkAdminAccess(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkAdminAccess(); });
+}
 
-  wireTabs();
-  renderTab("overview");
+function lockDashboard(wrongRole) {
+  ME = null;
+  MY_ROLE = null;
+  document.getElementById("dash").style.display = "none";
+  document.getElementById("tabContent").innerHTML = ""; // clear out any admin data/edit controls already rendered
+  showGate(wrongRole);
+  document.getElementById("gate").style.display = "block";
 }
 
 function showGate(wrongRole) {
@@ -966,7 +1012,7 @@ async function setUserRole(id, newRole, allProfiles) {
   }
   const { error } = await supabaseClient.from("profiles").update({ role: newRole }).eq("id", id);
   if (error) { alert(error.message); return; }
-  if (id === ME.id && newRole === "user") { return boot(); } // re-run the gate check on yourself
+  if (id === ME.id && newRole === "user") { return checkAdminAccess(); } // re-run the gate check on yourself
   loadStaffUsers();
 }
 
@@ -985,7 +1031,7 @@ async function retireUser(id, allProfiles) {
   }
   const { error } = await supabaseClient.from("profiles").update({ role: "user", retired: true, retired_at: new Date().toISOString() }).eq("id", id);
   if (error) { alert(error.message); return; }
-  if (id === ME.id) { return boot(); }
+  if (id === ME.id) { return checkAdminAccess(); }
   loadStaffUsers();
 }
 
