@@ -2,6 +2,37 @@
 
 All notable changes to the YNC Association Portal are documented in this file.
 
+## [2.8.0] — 2026-09-04
+
+### Fixed
+- **Real phones were rendering a shrunk-down desktop layout instead of a mobile
+  one** on any page with a side-by-side card/table layout (Finances was the
+  clearest case). Cause: CSS Grid columns don't shrink narrower than the widest
+  thing placed in them by default, so a data table inside a two-column grid was
+  forcing the whole grid — and the entire page — wider than the phone's screen,
+  which is exactly what makes a phone browser zoom the whole page out instead of
+  reflowing it. Fixed by letting grid cells actually shrink to their column
+  width (`min-width: 0`) so wide tables now scroll *inside their own card*
+  instead of stretching the page.
+- **The ☰ menu button was dropping onto its own row below the logo** on phone
+  widths instead of sitting beside it. Cause: the logo block was being measured
+  by its full un-wrapped text width when the header decided whether everything
+  fit on one line — so it claimed the whole row before its own text ever got a
+  chance to wrap. Fixed by sizing the logo block from the space actually left
+  next to the menu button, so the logo text wraps within its own space and the
+  ☰ button stays put on the right, same row, on any phone.
+
+## [2.7.1] — 2026-09-04
+
+### Changed
+- **Forms page**: nominee phone and email (Volunteer Nomination) and email
+  (Anna Prasadam Booking) are now required fields, not optional — matching
+  phone, which was already required on the Prasadam form. Enforced both in the
+  form (so it can't be submitted blank) and in the database (`NOT NULL`
+  constraints on `nominations.nominee_phone`/`nominee_email` and
+  `prasadam_bookings.email`), so the committee can always reach whoever
+  submits.
+
 ## [2.7.0] — 2026-09-04
 
 ### Added

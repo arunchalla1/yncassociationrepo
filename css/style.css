@@ -167,6 +167,14 @@ ul { padding-left: 1.2em; }
   .nav-dropdown.open .nav-dropdown-menu { display: block; }
   .nav-dropdown-menu a { padding: 12px 14px; }
   .nav-bar { flex-wrap: wrap; }
+  /* Without this, the brand block is measured at its *unwrapped* text width when
+     the browser decides whether brand + toggle fit on one line — that width alone
+     can exceed the screen, so the toggle gets pushed to a second row underneath
+     the logo instead of sitting beside it. Sizing brand from a 0 flex-basis makes
+     it take only the space left after the toggle, and its own text then wraps
+     normally inside that space — keeping logo and ☰ on the same row on any phone. */
+  .brand { flex: 1 1 0%; min-width: 0; }
+  .nav-toggle { flex-shrink: 0; }
 }
 
 /* ---------- Festival banner (self-expiring — see js/nav.js) ---------- */
@@ -266,6 +274,7 @@ ul { padding-left: 1.2em; }
   padding: 6px 14px; border-radius: 999px; margin-bottom: 16px;
 }
 .hero-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; }
+.hero-grid > * { min-width: 0; }
 @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } }
 .hero p.lead { font-size: 1.1rem; color: var(--text-muted); max-width: 46ch; }
 .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
@@ -294,6 +303,13 @@ section.section.tight { padding: 32px 0; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
+/* A "1fr" grid track won't shrink narrower than the widest thing inside it (e.g. a
+   data table) — the whole grid, and every ancestor up to the page itself, gets
+   forced wider instead. On a phone that's what makes a page with a table in a
+   grid (like Finances) render fully zoomed-out instead of reflowing to the
+   screen. min-width: 0 lets each grid cell actually shrink to its track's width,
+   so wide content scrolls inside .table-wrap the way it's meant to. */
+.grid > * { min-width: 0; }
 @media (max-width: 900px) { .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 620px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
 
@@ -362,6 +378,7 @@ tr:last-child td { border-bottom: none; }
 .site-footer { background: var(--brand-dark); color: #d9e8e4; padding: 44px 0 24px; margin-top: 64px; }
 .site-footer a { color: #fff; }
 .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; }
+.footer-grid > * { min-width: 0; }
 @media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
 .footer-grid h4 { color: #fff; font-size: 0.95rem; margin-bottom: 12px; }
 .footer-grid ul { list-style: none; padding: 0; margin: 0; }
