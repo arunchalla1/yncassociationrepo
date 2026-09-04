@@ -823,11 +823,12 @@ async function renderResidents() {
         <button class="btn btn-primary btn-sm" id="btnAddResident">+ Add resident</button>
       </div>
     </div>
-    <p class="text-muted" style="margin-top:10px; font-size:0.85rem;">Name, address &amp; floor are shown publicly under Colony Info, split into Owner / Tenant tabs by the "Type" field below. Phone &amp; email are admin-only and never sent to the public site.</p>
+    <p class="text-muted" style="margin-top:10px; font-size:0.85rem;">Name, address &amp; floor are shown publicly under Colony Info, split into Owner / Tenant tabs by the "Type" field below. Phone, email, occupancy dates and retired records are admin-only and never sent to the public site — a retired record is dropped from the public site immediately but kept here for history.</p>
     <div class="table-wrap" style="margin-top:14px;"><table>
-      <thead><tr><th>SNO</th><th>Type</th><th>Name</th><th>Home Address</th><th>Floor No</th><th>Phone</th><th>Email</th><th></th></tr></thead>
-      <tbody id="residentBody"><tr><td colspan="8" class="text-muted">Loading…</td></tr></tbody>
-    </table></div>`;
+      <thead><tr><th>SNO</th><th>Type</th><th>Name</th><th>Home Address</th><th>Floor No</th><th>Occupancy</th><th>Phone</th><th>Email</th><th></th></tr></thead>
+      <tbody id="residentBody"><tr><td colspan="9" class="text-muted">Loading…</td></tr></tbody>
+    </table></div>
+    <div id="retiredResidentsSection" style="margin-top:22px;"></div>`;
 
   const sel = document.getElementById("residentStreetSelect");
   sel.value = currentStreet;
@@ -836,28 +837,84 @@ async function renderResidents() {
   loadResidents();
 }
 
+// Owner → "Since <date>"; tenant → "<date> → <date or present>"; nothing set → "—".
+function occupancyLabel(r) {
+  if (!r.occupied_from) return "—";
+  const from = window.yncFormatDate(r.occupied_from);
+  if (r.resident_type === "tenant") return `${from} → ${r.vacate_date ? window.yncFormatDate(r.vacate_date) : "present"}`;
+  return `Since ${from}`;
+}
+
 async function loadResidents() {
   const { data } = await supabaseClient.from("residents").select("*").eq("street", currentStreet).order("resident_type").order("sno");
   ALL_RESIDENTS = data || [];
+  const active = ALL_RESIDENTS.filter(r => !r.retired);
+  const retired = ALL_RESIDENTS.filter(r => r.retired);
+
   const body = document.getElementById("residentBody");
-  if (!data || data.length === 0) { body.innerHTML = `<tr><td colspan="8" class="text-muted">No residents recorded for ${STREET_LABELS[currentStreet]} yet.</td></tr>`; return; }
-  body.innerHTML = data.map(r => `
-    <tr>
-      <td>${r.sno}</td>
-      <td><span class="badge badge-cat">${esc(r.resident_type)}</span></td>
-      <td>${esc(r.full_name)}</td>
-      <td>${esc(r.home_address)}</td>
-      <td>${esc(r.floor_no)||"—"}</td>
-      <td>${esc(r.phone)||"—"}</td>
-      <td>${esc(r.email)||"—"}</td>
-      <td class="flex gap-8">
-        <button class="btn btn-ghost btn-sm" data-edit="${r.id}">Edit</button>
-        <button class="btn btn-danger btn-sm" data-del="${r.id}">Delete</button>
-      </td>
-    </tr>`).join("");
-  body.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => openResidentForm(data.find(r=>r.id===b.dataset.edit))));
-  body.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirm("Delete this resident record?")) return;
+  if (active.length === 0) {
+    body.innerHTML = `<tr><td colspan="9" class="text-muted">No active residents recorded for ${STREET_LABELS[currentStreet]} yet.</td></tr>`;
+  } else {
+    body.innerHTML = active.map(r => `
+      <tr>
+        <td>${r.sno}</td>
+        <td><span class="badge badge-cat">${esc(r.resident_type)}</span></td>
+        <td>${esc(r.full_name)}</td>
+        <td>${esc(r.home_address)}</td>
+        <td>${esc(r.floor_no)||"—"}</td>
+        <td style="white-space:nowrap;">${occupancyLabel(r)}</td>
+        <td>${esc(r.phone)||"—"}</td>
+        <td>${esc(r.email)||"—"}</td>
+        <td class="flex gap-8">
+          <button class="btn btn-ghost btn-sm" data-edit="${r.id}">Edit</button>
+          <button class="btn btn-outline btn-sm" data-retire="${r.id}">Retire</button>
+          <button class="btn btn-danger btn-sm" data-del="${r.id}">Remove</button>
+        </td>
+      </tr>`).join("");
+    body.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => openResidentForm(ALL_RESIDENTS.find(r=>r.id===b.dataset.edit))));
+    body.querySelectorAll("[data-retire]").forEach(b => b.addEventListener("click", async () => {
+      const r = ALL_RESIDENTS.find(x => x.id === b.dataset.retire);
+      if (!confirm(`Retire ${r ? r.full_name : "this resident"}? This removes them from the public Colony Info page and this list right away, but keeps the record here — you can reactivate it later.`)) return;
+      await supabaseClient.from("residents").update({ retired: true, retired_at: new Date().toISOString() }).eq("id", b.dataset.retire);
+      loadResidents();
+    }));
+    body.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("Permanently remove this resident record? This can't be undone — use Retire instead if you want to keep the record for history.")) return;
+      await supabaseClient.from("residents").delete().eq("id", b.dataset.del);
+      loadResidents();
+    }));
+  }
+
+  const retiredWrap = document.getElementById("retiredResidentsSection");
+  if (retired.length === 0) { retiredWrap.innerHTML = ""; return; }
+  retiredWrap.innerHTML = `
+    <details>
+      <summary style="cursor:pointer; font-size:0.9rem; color:var(--text-muted);">Retired residents (${retired.length})</summary>
+      <p class="text-muted" style="font-size:0.82rem; margin-top:8px;">Hidden from the public Colony Info page and the list above; kept here so the history isn't lost.</p>
+      <div class="table-wrap" style="margin-top:8px;"><table>
+        <thead><tr><th>Type</th><th>Name</th><th>Home Address</th><th>Occupancy</th><th>Retired</th><th></th></tr></thead>
+        <tbody>
+          ${retired.map(r => `
+            <tr>
+              <td><span class="badge badge-cat">${esc(r.resident_type)}</span></td>
+              <td>${esc(r.full_name)}</td>
+              <td>${esc(r.home_address)}</td>
+              <td style="white-space:nowrap;">${occupancyLabel(r)}</td>
+              <td>${r.retired_at ? window.yncFormatDate(r.retired_at) : "—"}</td>
+              <td class="flex gap-8">
+                <button class="btn btn-outline btn-sm" data-reactivate="${r.id}">Reactivate</button>
+                <button class="btn btn-danger btn-sm" data-del="${r.id}">Remove</button>
+              </td>
+            </tr>`).join("")}
+        </tbody>
+      </table></div>
+    </details>`;
+  retiredWrap.querySelectorAll("[data-reactivate]").forEach(b => b.addEventListener("click", async () => {
+    await supabaseClient.from("residents").update({ retired: false, retired_at: null }).eq("id", b.dataset.reactivate);
+    loadResidents();
+  }));
+  retiredWrap.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Permanently remove this resident record? This can't be undone.")) return;
     await supabaseClient.from("residents").delete().eq("id", b.dataset.del);
     loadResidents();
   }));
@@ -865,6 +922,7 @@ async function loadResidents() {
 
 function openResidentForm(existing) {
   const nextSno = existing ? existing.sno : (Math.max(0, ...ALL_RESIDENTS.map(r => r.sno || 0)) + 1);
+  const isTenant = existing?.resident_type === "tenant";
   openModal(`
     <h3>${existing ? "Edit" : "Add"} resident — ${STREET_LABELS[currentStreet]}</h3>
     <div id="residentFormAlert" class="alert alert-error" hidden></div>
@@ -874,7 +932,7 @@ function openResidentForm(existing) {
         <div class="field"><label>Type</label>
           <select id="rType">
             <option value="owner" ${existing?.resident_type==="owner"?"selected":""}>Owner</option>
-            <option value="tenant" ${existing?.resident_type==="tenant"?"selected":""}>Tenant</option>
+            <option value="tenant" ${isTenant?"selected":""}>Tenant</option>
           </select>
         </div>
       </div>
@@ -882,6 +940,19 @@ function openResidentForm(existing) {
       <div class="grid grid-2">
         <div class="field"><label>Home Address</label><input type="text" id="rAddress" value="${esc(existing?.home_address)}" required></div>
         <div class="field"><label>Floor No</label><input type="text" id="rFloor" value="${esc(existing?.floor_no)}"></div>
+      </div>
+      <hr class="divider">
+      <h4>Occupancy</h4>
+      <div class="grid grid-2">
+        <div class="field">
+          <label id="rOccupiedFromLabel">${isTenant ? "Occupied Date" : "Occupied From"}</label>
+          <input type="date" id="rOccupiedFrom" value="${existing?.occupied_from || ""}">
+        </div>
+        <div class="field" id="rVacateDateField" ${isTenant ? "" : 'style="display:none;"'}>
+          <label>Vacate Date</label>
+          <input type="date" id="rVacateDate" value="${existing?.vacate_date || ""}">
+          <div class="field-hint">Leave blank while the tenant is still occupying.</div>
+        </div>
       </div>
       <hr class="divider">
       <h4>Contact details <span class="field-hint" style="font-weight:400;">(admin-only — never shown on the public site)</span></h4>
@@ -893,15 +964,29 @@ function openResidentForm(existing) {
       <div class="flex gap-8"><button class="btn btn-primary" type="submit">Save</button><button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button></div>
     </form>
   `);
+
+  const typeSelect = document.getElementById("rType");
+  const vacateField = document.getElementById("rVacateDateField");
+  const occLabel = document.getElementById("rOccupiedFromLabel");
+  function syncOccupancyFields() {
+    const tenantSelected = typeSelect.value === "tenant";
+    vacateField.style.display = tenantSelected ? "" : "none";
+    occLabel.textContent = tenantSelected ? "Occupied Date" : "Occupied From";
+  }
+  typeSelect.addEventListener("change", syncOccupancyFields);
+
   document.getElementById("residentForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const type = document.getElementById("rType").value;
     const payload = {
       street: currentStreet,
       sno: Number(document.getElementById("rSno").value) || 1,
-      resident_type: document.getElementById("rType").value,
+      resident_type: type,
       full_name: document.getElementById("rName").value.trim(),
       home_address: document.getElementById("rAddress").value.trim(),
       floor_no: document.getElementById("rFloor").value.trim() || null,
+      occupied_from: document.getElementById("rOccupiedFrom").value || null,
+      vacate_date: type === "tenant" ? (document.getElementById("rVacateDate").value || null) : null,
       phone: document.getElementById("rPhone").value.trim() || null,
       email: document.getElementById("rEmail").value.trim() || null,
       notes: document.getElementById("rNotes").value.trim() || null,

@@ -2,6 +2,30 @@
 
 All notable changes to the YNC Association Portal are documented in this file.
 
+## [2.10.0] — 2026-09-04
+
+### Added
+- **Occupancy tracking on Residents** (Staff Dashboard, admin-only): an owner
+  record now has an "Occupied From" date; a tenant record has an "Occupied
+  Date" and a "Vacate Date" (left blank while they're still there). The
+  Residents table shows this as a new Occupancy column, e.g. "Since 12 Jan
+  2024" for an owner or "12 Jan 2024 → present" for a current tenant.
+- **Retire, alongside Add and Remove, for resident records.** Retiring a
+  resident removes them from the public Colony Info page and the active
+  admin list immediately, but — unlike Remove — keeps the record in the
+  database under a collapsible "Retired residents" section, with a
+  Reactivate button to undo it. Remove is still there for records that were
+  entered by mistake and should be purged entirely. This mirrors the
+  existing Retire/Reactivate pattern already used for Staff Access accounts.
+
+### Fixed
+- **The public site could have kept showing a resident after they were
+  removed as current.** `get_public_residents()` (the Colony Info street
+  pages) and `public_resident_count()` (the homepage's "Residents Listed"
+  stat) now both exclude retired records at the database level — the normal,
+  signed-out website only ever shows who's currently listed, regardless of
+  how the admin dashboard is used.
+
 ## [2.9.1] — 2026-09-04
 
 ### Fixed
