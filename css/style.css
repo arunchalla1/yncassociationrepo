@@ -297,7 +297,7 @@ section.section.tight { padding: 32px 0; }
   box-shadow: var(--shadow-sm);
 }
 .card-hover { transition: transform .15s ease, box-shadow .15s ease; }
-.card-hover:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.card-hover:hover, .card-hover:focus-visible { transform: translateY(-3px); box-shadow: var(--shadow); outline: none; }
 
 .grid { display: grid; gap: 20px; }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
@@ -316,6 +316,10 @@ section.section.tight { padding: 32px 0; }
 .stat-card { text-align: center; padding: 24px; }
 .stat-card .num { font-family: "Poppins", sans-serif; font-size: 2.1rem; font-weight: 800; color: var(--brand); }
 .stat-card .label { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+/* A stat card that's really a shortcut into the dashboard section it summarizes
+   (see admin/dashboard.js goToTab) — reset the <button> defaults so it reads as
+   the same card, just with the existing .card-hover lift on hover/focus. */
+button.stat-card-link { display: block; width: 100%; font-family: inherit; cursor: pointer; }
 
 /* ---------- Badges / tags ---------- */
 .badge {
@@ -397,6 +401,33 @@ tr:last-child td { border-bottom: none; }
   font-weight: 600; font-size: 0.88rem; cursor: pointer; color: var(--text);
 }
 .pill-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+/* ---------- Staff Dashboard tab groups (declutters related tabs behind one
+   dropdown — e.g. "Nominations" for Volunteer + Anna Prasadam) ---------- */
+.pill-tab-group { position: relative; }
+.pill-tab-group-trigger.active-group { background: var(--brand-tint); border-color: var(--brand); color: var(--brand-dark); }
+.pill-tab-menu {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  min-width: 210px;
+  padding: 6px;
+  z-index: 60;
+}
+.pill-tab-menu.open { display: flex; }
+.pill-tab-menu .pill-tab {
+  border: none; background: none; border-radius: 8px; text-align: left; width: 100%;
+  padding: 10px 12px;
+}
+.pill-tab-menu .pill-tab:hover { background: var(--brand-tint); }
+.pill-tab-menu .pill-tab.active { background: var(--brand); color: #fff; }
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
 .empty-state .icon { font-size: 2.4rem; margin-bottom: 10px; }
 .avatar-circle {

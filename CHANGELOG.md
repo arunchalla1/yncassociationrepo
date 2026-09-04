@@ -2,6 +2,26 @@
 
 All notable changes to the YNC Association Portal are documented in this file.
 
+## [2.9.0] — 2026-09-04
+
+### Changed
+- **Staff Dashboard navigation decluttered.** The 11 flat tabs across the top are
+  now 8: "Nominations" groups Volunteer Nominations + Anna Prasadam behind one
+  dropdown, and "Team & Committees" groups Association Team + Festival
+  Committees + Photo Galleries behind another. Overview, Notices, Complaints,
+  Residents, Finances, and Staff Access stay as single top-level tabs. Opening
+  either dropdown shows its items in a small menu; picking one closes the menu
+  and highlights both the item and its parent, so it's always clear which
+  section you're in.
+- **Overview's stat cards are now shortcuts.** Clicking a number jumps straight
+  to the section it's counting, already filtered to match:
+  - **Open Complaints** → Complaints, filtered to Open
+  - **Pending Nominations** → Nominations, filtered to Pending (this filter is
+    new — Nominations previously had no status filter at all)
+  - **Pending Prasadam Slots** → Anna Prasadam, filtered to Pending
+  - **Residents Listed** → Residents, where owner/tenant records are added
+  - **Total Notices** → Notices
+
 ## [2.8.0] — 2026-09-04
 
 ### Fixed

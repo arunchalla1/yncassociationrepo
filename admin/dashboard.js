@@ -58,14 +58,45 @@ function showGate(wrongRole) {
     : `<div class="card gate-card"><div class="icon">🔒</div><h3>Staff sign-in required</h3><p class="text-muted">This dashboard is for Association &amp; Festival Committee staff.</p><a href="../login.html" class="btn btn-primary">Sign in</a></div>`;
 }
 
+// ---------- Tab bar: plain tabs + grouped dropdowns (Nominations; Team & Committees) ----------
 function wireTabs() {
-  document.querySelectorAll("#tabBar .pill-tab").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#tabBar .pill-tab").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
+  // Group dropdown triggers (e.g. "Nominations ▾") toggle their menu open/closed.
+  document.querySelectorAll(".pill-tab-group-trigger").forEach(trigger => {
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const menu = trigger.nextElementSibling;
+      const wasOpen = menu.classList.contains("open");
+      closeAllTabMenus();
+      if (!wasOpen) menu.classList.add("open");
+    });
+  });
+  // Any actual tab button — whether a top-level pill or one inside a dropdown menu.
+  document.querySelectorAll("#tabBar [data-tab]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      activateTabUI(btn.dataset.tab);
       renderTab(btn.dataset.tab);
     });
   });
+  // Click anywhere else closes an open dropdown.
+  document.addEventListener("click", closeAllTabMenus);
+}
+
+function closeAllTabMenus() {
+  document.querySelectorAll(".pill-tab-menu.open").forEach(m => m.classList.remove("open"));
+}
+
+// Updates which pill looks active — including lighting up a group's trigger
+// (e.g. "Nominations ▾") when the active tab lives inside its dropdown — without
+// rendering anything. Used both by normal tab clicks and by the Overview
+// shortcuts (goToTab), which need the tab bar to reflect where they just jumped to.
+function activateTabUI(tab) {
+  document.querySelectorAll("#tabBar [data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".pill-tab-group-trigger").forEach(trigger => {
+    const subtabs = (trigger.dataset.subtabs || "").split(",");
+    trigger.classList.toggle("active-group", subtabs.includes(tab));
+  });
+  closeAllTabMenus();
 }
 
 function renderTab(tab) {
@@ -77,6 +108,18 @@ function renderTab(tab) {
     prasadam: renderPrasadam, staff: renderStaffUsers,
   };
   (map[tab] || renderOverview)();
+}
+
+// Overview's stat cards are shortcuts into the section they summarize — this is
+// what a click on e.g. "Pending Nominations" actually runs: set whatever filter
+// makes the destination show the same thing the stat counted, then switch tabs.
+function goToTab(tab, opts) {
+  opts = opts || {};
+  if (opts.complaintFilter) complaintStatusFilter = opts.complaintFilter;
+  if (opts.nominationFilter) nominationStatusFilter = opts.nominationFilter;
+  if (opts.prasadamFilter) prasadamStatusFilter = opts.prasadamFilter;
+  activateTabUI(tab);
+  renderTab(tab);
 }
 
 // ========================================================= OVERVIEW
@@ -96,13 +139,23 @@ async function renderOverview() {
     supabaseClient.from("notices").select("*", { count: "exact", head: true }),
   ]);
 
+  // Each stat is a shortcut into the dashboard section it summarizes, pre-filtered
+  // to match what was counted (e.g. "Pending Nominations" lands on the Nominations
+  // tab with the Pending filter already selected) — see goToTab().
   document.getElementById("ovStats").innerHTML = `
-    <div class="card stat-card"><div class="num">${openC ?? 0}</div><div class="label">Open Complaints</div></div>
-    <div class="card stat-card"><div class="num">${pendingNom ?? 0}</div><div class="label">Pending Nominations</div></div>
-    <div class="card stat-card"><div class="num">${pendingPrasadam ?? 0}</div><div class="label">Pending Prasadam Slots</div></div>
-    <div class="card stat-card"><div class="num">${residents ?? 0}</div><div class="label">Residents Listed</div></div>
-    <div class="card stat-card"><div class="num">${notices ?? 0}</div><div class="label">Total Notices</div></div>
+    <button class="card card-hover stat-card stat-card-link" data-goto="complaints" data-complaint-filter="open"><div class="num">${openC ?? 0}</div><div class="label">Open Complaints</div></button>
+    <button class="card card-hover stat-card stat-card-link" data-goto="nominations" data-nomination-filter="pending"><div class="num">${pendingNom ?? 0}</div><div class="label">Pending Nominations</div></button>
+    <button class="card card-hover stat-card stat-card-link" data-goto="prasadam" data-prasadam-filter="pending"><div class="num">${pendingPrasadam ?? 0}</div><div class="label">Pending Prasadam Slots</div></button>
+    <button class="card card-hover stat-card stat-card-link" data-goto="residents"><div class="num">${residents ?? 0}</div><div class="label">Residents Listed</div></button>
+    <button class="card card-hover stat-card stat-card-link" data-goto="notices"><div class="num">${notices ?? 0}</div><div class="label">Total Notices</div></button>
   `;
+  document.querySelectorAll("#ovStats [data-goto]").forEach(btn => {
+    btn.addEventListener("click", () => goToTab(btn.dataset.goto, {
+      complaintFilter: btn.dataset.complaintFilter,
+      nominationFilter: btn.dataset.nominationFilter,
+      prasadamFilter: btn.dataset.prasadamFilter,
+    }));
+  });
 }
 
 // ========================================================= NOTICES
@@ -197,11 +250,11 @@ async function renderComplaints() {
   wrap.innerHTML = `
     <h2>Complaints</h2>
     <div class="pill-tabs" id="complaintFilterTabs">
-      <button class="pill-tab active" data-f="all">All</button>
-      <button class="pill-tab" data-f="open">Open</button>
-      <button class="pill-tab" data-f="in_progress">In progress</button>
-      <button class="pill-tab" data-f="resolved">Resolved</button>
-      <button class="pill-tab" data-f="closed">Closed</button>
+      <button class="pill-tab ${complaintStatusFilter === "all" ? "active" : ""}" data-f="all">All</button>
+      <button class="pill-tab ${complaintStatusFilter === "open" ? "active" : ""}" data-f="open">Open</button>
+      <button class="pill-tab ${complaintStatusFilter === "in_progress" ? "active" : ""}" data-f="in_progress">In progress</button>
+      <button class="pill-tab ${complaintStatusFilter === "resolved" ? "active" : ""}" data-f="resolved">Resolved</button>
+      <button class="pill-tab ${complaintStatusFilter === "closed" ? "active" : ""}" data-f="closed">Closed</button>
     </div>
     <div id="complaintsList"></div>`;
 
@@ -287,12 +340,34 @@ async function loadComplaintsList() {
 }
 
 // ========================================================= NOMINATIONS
+let nominationStatusFilter = "all";
 async function renderNominations() {
   const wrap = document.getElementById("tabContent");
-  wrap.innerHTML = `<h2>Volunteer Nominations</h2><div id="nomList"></div>`;
-  const { data } = await supabaseClient.from("nominations").select("*, festival_committees(name)").order("created_at", { ascending: false });
+  wrap.innerHTML = `
+    <h2>Volunteer Nominations</h2>
+    <div class="pill-tabs" id="nomFilterTabs">
+      <button class="pill-tab ${nominationStatusFilter === "all" ? "active" : ""}" data-f="all">All</button>
+      <button class="pill-tab ${nominationStatusFilter === "pending" ? "active" : ""}" data-f="pending">Pending</button>
+      <button class="pill-tab ${nominationStatusFilter === "approved" ? "active" : ""}" data-f="approved">Approved</button>
+      <button class="pill-tab ${nominationStatusFilter === "rejected" ? "active" : ""}" data-f="rejected">Rejected</button>
+    </div>
+    <div id="nomList"></div>`;
+
+  document.querySelectorAll("#nomFilterTabs .pill-tab").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("#nomFilterTabs .pill-tab").forEach(x => x.classList.remove("active"));
+    b.classList.add("active"); nominationStatusFilter = b.dataset.f; loadNominationsList();
+  }));
+  loadNominationsList();
+}
+
+async function loadNominationsList() {
   const list = document.getElementById("nomList");
-  if (!data || data.length === 0) { list.innerHTML = `<div class="empty-state"><div class="icon">🙌</div>No nominations yet.</div>`; return; }
+  list.innerHTML = `<div class="card skeleton" style="height:100px;"></div>`;
+  let q = supabaseClient.from("nominations").select("*, festival_committees(name)").order("created_at", { ascending: false });
+  if (nominationStatusFilter !== "all") q = q.eq("status", nominationStatusFilter);
+  const { data } = await q;
+
+  if (!data || data.length === 0) { list.innerHTML = `<div class="empty-state"><div class="icon">🙌</div>No nominations here.</div>`; return; }
 
   list.innerHTML = data.map(n => `
     <div class="card" style="margin-bottom:12px;">
@@ -331,14 +406,14 @@ async function renderNominations() {
       );
       if (!sent) alert(`Approved. No email on file for ${n.nominee_name} — let them know some other way.`);
     }
-    renderNominations();
+    loadNominationsList();
   }));
   list.querySelectorAll("[data-reject]").forEach(b => b.addEventListener("click", async () => {
     const n = data.find(x => x.id === b.dataset.reject);
     const reason = prompt(`Why is ${n ? n.nominee_name : "this nomination"} being rejected?\n\nThis reason (rephrased) will be shown to the person on the site's Forms → Check Status page.`);
     if (reason === null) return; // staff cancelled
     await supabaseClient.from("nominations").update({ status: "rejected", rejection_reason: reason.trim() || null }).eq("id", b.dataset.reject);
-    renderNominations();
+    loadNominationsList();
   }));
 }
 
@@ -349,10 +424,10 @@ async function renderPrasadam() {
   wrap.innerHTML = `
     <h2>Anna Prasadam Slot Bookings</h2>
     <div class="pill-tabs" id="prasadamFilterTabs">
-      <button class="pill-tab active" data-f="pending">Pending</button>
-      <button class="pill-tab" data-f="approved">Approved</button>
-      <button class="pill-tab" data-f="rejected">Rejected</button>
-      <button class="pill-tab" data-f="all">All</button>
+      <button class="pill-tab ${prasadamStatusFilter === "pending" ? "active" : ""}" data-f="pending">Pending</button>
+      <button class="pill-tab ${prasadamStatusFilter === "approved" ? "active" : ""}" data-f="approved">Approved</button>
+      <button class="pill-tab ${prasadamStatusFilter === "rejected" ? "active" : ""}" data-f="rejected">Rejected</button>
+      <button class="pill-tab ${prasadamStatusFilter === "all" ? "active" : ""}" data-f="all">All</button>
     </div>
     <div id="prasadamList"></div>`;
 

@@ -35,11 +35,21 @@
       <button class="pill-tab active" data-tab="overview">Overview</button>
       <button class="pill-tab" data-tab="notices">Notices</button>
       <button class="pill-tab" data-tab="complaints">Complaints</button>
-      <button class="pill-tab" data-tab="nominations">Nominations</button>
-      <button class="pill-tab" data-tab="prasadam">Anna Prasadam</button>
-      <button class="pill-tab" data-tab="team">Association Team</button>
-      <button class="pill-tab" data-tab="festival-team">Festival Committees</button>
-      <button class="pill-tab" data-tab="photos">Photo Galleries</button>
+      <div class="pill-tab-group">
+        <button class="pill-tab pill-tab-group-trigger" data-subtabs="nominations,prasadam">Nominations ▾</button>
+        <div class="pill-tab-menu">
+          <button class="pill-tab" data-tab="nominations">🙋 Volunteer Nominations</button>
+          <button class="pill-tab" data-tab="prasadam">🍚 Anna Prasadam</button>
+        </div>
+      </div>
+      <div class="pill-tab-group">
+        <button class="pill-tab pill-tab-group-trigger" data-subtabs="team,festival-team,photos">Team &amp; Committees ▾</button>
+        <div class="pill-tab-menu">
+          <button class="pill-tab" data-tab="team">🧑‍🤝‍🧑 Association Team</button>
+          <button class="pill-tab" data-tab="festival-team">🎉 Festival Committees</button>
+          <button class="pill-tab" data-tab="photos">📸 Photo Galleries</button>
+        </div>
+      </div>
       <button class="pill-tab" data-tab="residents">Residents</button>
       <button class="pill-tab" data-tab="finances">Finances</button>
       <button class="pill-tab" data-tab="staff">Staff Access</button>
