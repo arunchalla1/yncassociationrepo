@@ -39,7 +39,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
   background: var(--bg);
@@ -141,10 +141,17 @@ ul { padding-left: 1.2em; }
 .nav-toggle {
   display: none;
   background: none; border: 1px solid var(--border); border-radius: 8px;
-  width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer;
+  width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer;
+  /* Prevents a tap/long-press on the ☰ glyph from selecting it as text, and
+     removes the extra tap delay some mobile browsers add before firing click. */
+  user-select: none; -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
-@media (max-width: 900px) {
+/* Below this, the full nav-links list (9+ items) no longer fits on one line and
+   would otherwise wrap into 2-3 messy rows while still showing as "desktop" nav —
+   switch to the hamburger menu earlier, at the tablet width, to avoid that. */
+@media (max-width: 1080px) {
   .nav-toggle { display: block; }
   .nav-links {
     display: none;
@@ -155,9 +162,65 @@ ul { padding-left: 1.2em; }
     border-top: 1px solid var(--border);
   }
   .nav-links.open { display: flex; }
+  .nav-links a { padding: 12px 14px; font-size: 1rem; } /* larger tap target once stacked */
   .nav-dropdown-menu { position: static; box-shadow: none; border: none; display: none; padding-left: 12px; }
   .nav-dropdown.open .nav-dropdown-menu { display: block; }
+  .nav-dropdown-menu a { padding: 12px 14px; }
   .nav-bar { flex-wrap: wrap; }
+}
+
+/* ---------- Festival banner (self-expiring — see js/nav.js) ---------- */
+.festival-banner {
+  background: linear-gradient(120deg, var(--brand-dark) 0%, #1b3a63 55%, var(--brand-dark) 100%);
+  border-bottom: 2px solid #d9a441;
+  overflow: hidden;
+}
+.festival-banner-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.festival-banner-img {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid #d9a441;
+}
+.festival-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  color: #f4e9d2;
+  font-size: 0.92rem;
+}
+.festival-banner-text strong {
+  color: #f2c869;
+  font-family: "Poppins", sans-serif;
+  font-size: 1rem;
+  letter-spacing: .01em;
+}
+.festival-banner-close {
+  background: none;
+  border: none;
+  color: #f4e9d2;
+  opacity: 0.75;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  flex-shrink: 0;
+}
+.festival-banner-close:hover { opacity: 1; }
+@media (max-width: 640px) {
+  .festival-banner-img { width: 36px; height: 36px; }
+  .festival-banner-text { font-size: 0.85rem; }
 }
 
 /* ---------- Buttons ---------- */
@@ -260,10 +323,12 @@ label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px
 input[type="text"], input[type="email"], input[type="tel"], input[type="password"],
 input[type="number"], input[type="date"], input[type="url"], select, textarea {
   width: 100%;
-  padding: 11px 13px;
+  padding: 12px 13px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  font-size: 0.96rem;
+  /* 16px, not 0.96rem (~15.4px) — iOS Safari auto-zooms the page on focus for any
+     input under 16px, which is jarring on a phone. */
+  font-size: 16px;
   font-family: inherit;
   background: #fff;
   color: var(--text);
@@ -287,7 +352,7 @@ fieldset { border: none; padding: 0; margin: 0; }
 .alert[hidden] { display: none; }
 
 /* ---------- Table ---------- */
-.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 table { width: 100%; border-collapse: collapse; font-size: 0.92rem; min-width: 560px; }
 th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { background: #f4f1e9; font-weight: 700; color: var(--brand-dark); font-size: 0.8rem; text-transform: uppercase; letter-spacing: .03em; }
@@ -338,3 +403,18 @@ tr:last-child td { border-bottom: none; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(15,25,22,0.5); display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
 .modal-backdrop.open { display: flex; }
 .modal { background: #fff; border-radius: var(--radius); max-width: 560px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 26px; box-shadow: var(--shadow-lg); }
+
+/* ---------- Phone-width polish ---------- */
+/* Placed last so these overrides win the cascade against the unconditional
+   rules above (same selectors, same specificity — source order decides ties). */
+@media (max-width: 640px) {
+  .container { padding: 0 16px; }
+  .hero { padding: 36px 0 30px; }
+  section.section { padding: 36px 0; }
+  section.section.tight { padding: 22px 0; }
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal { padding: 20px 16px; max-height: 92vh; border-radius: var(--radius) var(--radius) 0 0; }
+  .pill-tabs { gap: 8px; }
+  .pill-tab { padding: 10px 14px; }
+  .btn:not(.btn-sm) { min-height: 44px; } /* comfortable tap target on touch devices */
+}

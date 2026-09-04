@@ -2,6 +2,42 @@
 
 All notable changes to the YNC Association Portal are documented in this file.
 
+## [2.7.0] — 2026-09-04
+
+### Added
+- **Mobile-phone compatibility pass**, site-wide:
+  - Form fields (text inputs, selects, textareas) now use a 16px font size —
+    iOS Safari auto-zooms the whole page when a focused field is smaller than
+    that, which made every form feel broken on iPhones.
+  - The hamburger-menu breakpoint moved from 900px to 1080px (updated in both
+    `css/style.css` and `js/nav.js`, kept in sync) so the nav collapses to the
+    mobile menu before links start wrapping/crowding on tablets and small
+    laptops. Menu links and dropdown items also got larger tap targets.
+  - The menu button itself is bigger (44×44px, the standard minimum comfortable
+    tap size) and can no longer be accidentally double-tap-zoomed.
+  - Tables that don't fit a phone's width now scroll horizontally within
+    themselves (with smooth touch-scrolling on iOS) instead of squeezing the
+    whole page or forcing it to scroll sideways.
+  - Popup dialogs (forms, confirmations) now open as a bottom sheet on phones
+    — anchored to the bottom of the screen with rounded top corners — which is
+    easier to reach one-handed than a small centered box.
+  - Tightened padding/spacing on phone-width screens (hero banner, page
+    sections, tab pills) so more content is visible without feeling cramped,
+    and buttons keep a comfortable minimum tap height.
+  - `directory.html` (the Colony Info redirect page) was missing the
+    viewport meta tag that every other page has; added it.
+
+## [2.6.0] — 2026-09-04
+
+### Added
+- **Self-expiring festival banner**, shown site-wide (via `js/nav.js`, so every page
+  gets it automatically) for **Janmashtami, 2026-09-04** — a photo, greeting, and a
+  dismiss button in the site's own navy/gold palette. It's purely date-gated against the
+  visitor's own device clock (`FESTIVAL_BANNER.startDate`/`endDate` in `js/nav.js`): from
+  2026-09-05 onward it stops rendering on its own, with no follow-up deploy needed to
+  "turn it off." Reusable for a future festival by editing that object and dropping a new
+  image under `assets/festivals/`.
+
 ## [2.5.3] — 2026-09-03
 
 ### Fixed

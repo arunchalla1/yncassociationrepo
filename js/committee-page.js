@@ -82,17 +82,11 @@ function wireNominationForm(committeeIdSource) {
   const typeRadios = form.querySelectorAll('input[name="nomType"]');
   const otherFields = document.getElementById("nominatedByFields");
 
-  const emailInput = document.getElementById("nomineeEmail");
-  const emailHint = document.getElementById("nomineeEmailHint");
-
+  // Nominee phone and email are always required (regardless of self/other
+  // nomination type) so the committee can always reach the nominee.
   function syncType() {
     const val = form.querySelector('input[name="nomType"]:checked').value;
     otherFields.style.display = val === "other" ? "block" : "none";
-    const selfSelected = val === "self";
-    emailInput.required = selfSelected;
-    if (emailHint) emailHint.textContent = selfSelected
-      ? "Required — we'll email you here once the committee approves your nomination."
-      : "Optional — used to notify the nominee if approved.";
   }
   typeRadios.forEach(r => r.addEventListener("change", syncType));
   syncType();
@@ -169,7 +163,7 @@ function wirePrasadamForm(committeeIdSource) {
       year: YNC_CONFIG.currentYear,
       full_name: document.getElementById("prasadamName").value.trim(),
       phone: document.getElementById("prasadamPhone").value.trim(),
-      email: document.getElementById("prasadamEmail").value.trim() || null,
+      email: document.getElementById("prasadamEmail").value.trim(),
       slot_date: document.getElementById("prasadamDate").value,
       people_count: Number(document.getElementById("prasadamCount").value) || null,
       notes: document.getElementById("prasadamNotes").value.trim() || null,

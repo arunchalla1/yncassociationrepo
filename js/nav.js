@@ -83,6 +83,53 @@
     <div class="footer-bottom">© <span id="ftYear"></span> YNC Association · YNC Colony. Built for residents, by residents.</div>`;
   }
 
+  // ---------- Festival banner (self-expiring) ----------
+  // A short-lived greeting banner for a specific festival date. It's entirely
+  // date-gated: outside startDate–endDate (checked against the visitor's own
+  // device clock) mountFestivalBanner() does nothing, so the site reverts to
+  // normal automatically — no follow-up deploy needed to remove it. To reuse
+  // this for a future festival, just edit the object below and drop in a new
+  // image under assets/festivals/.
+  const FESTIVAL_BANNER = {
+    startDate: "2026-09-04",
+    endDate: "2026-09-04",
+    storageKey: "yncFestivalBannerDismissed_2026-09-04",
+    image: `${ROOT}assets/festivals/janmashtami-2026.jpg`,
+    title: "Happy Janmashtami!",
+    message: "Wishing every YNC Colony family Sri Krishna's blessings, joy, and prosperity today. 🦚🪔",
+  };
+
+  function isFestivalBannerDay() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    return today >= FESTIVAL_BANNER.startDate && today <= FESTIVAL_BANNER.endDate;
+  }
+
+  function mountFestivalBanner() {
+    if (!isFestivalBannerDay()) return;
+    let dismissed = false;
+    try { dismissed = sessionStorage.getItem(FESTIVAL_BANNER.storageKey) === "1"; } catch (e) { /* ignore */ }
+    if (dismissed) return;
+
+    const bar = document.createElement("div");
+    bar.className = "festival-banner";
+    bar.innerHTML = `
+      <div class="festival-banner-inner">
+        <img class="festival-banner-img" src="${FESTIVAL_BANNER.image}" alt="">
+        <div class="festival-banner-text">
+          <strong>${escapeHtml(FESTIVAL_BANNER.title)}</strong>
+          <span>${escapeHtml(FESTIVAL_BANNER.message)}</span>
+        </div>
+        <button class="festival-banner-close" aria-label="Dismiss">&times;</button>
+      </div>`;
+    document.body.insertBefore(bar, document.body.firstChild);
+    bar.querySelector(".festival-banner-close").addEventListener("click", () => {
+      bar.remove();
+      try { sessionStorage.setItem(FESTIVAL_BANNER.storageKey, "1"); } catch (e) { /* ignore */ }
+    });
+  }
+
   function mountLayout() {
     const headerEl = document.getElementById("site-header");
     const footerEl = document.getElementById("site-footer");
@@ -107,7 +154,7 @@
     document.querySelectorAll(".nav-dropdown").forEach((dd) => {
       const ddLink = dd.querySelector("a");
       ddLink.addEventListener("click", (e) => {
-        if (window.innerWidth <= 900) {
+        if (window.innerWidth <= 1080) { // keep in sync with the nav breakpoint in css/style.css
           e.preventDefault();
           dd.classList.toggle("open");
         }
@@ -165,6 +212,7 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    mountFestivalBanner();
     mountLayout();
     refreshAuthArea();
     supabaseClient.auth.onAuthStateChange(() => refreshAuthArea());
